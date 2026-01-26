@@ -51,6 +51,10 @@ services:
       # OpenRouter integration
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - ENABLED_OPENROUTER=1
+      # vLLM local model (OpenAI-compatible)
+      - OPENAI_API_KEY=${VLLM_API_KEY:-sk-local}
+      - OPENAI_PROXY_URL=http://vllm:8000/v1
+      - OPENAI_MODEL_LIST=${VLLM_MODEL_ID:-oriolrius/myemoji-gemma-3-270m-it}
       - LLM_VISION_IMAGE_USE_BASE64=1
     restart: unless-stopped
     depends_on:
@@ -60,6 +64,37 @@ services:
         condition: service_started
       minio:
         condition: service_healthy
+      vllm:
+        condition: service_healthy
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm
+    ports:
+      - "${VLLM_PORT:-47007}:8000"
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+    volumes:
+      - ./data/huggingface:/root/.cache/huggingface
+    command: >
+      --model ${VLLM_MODEL_ID:-oriolrius/myemoji-gemma-3-270m-it}
+      --trust-remote-code
+      --max-model-len 4096
+      --gpu-memory-utilization 0.9
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   minio:
     image: minio/minio:latest
