@@ -1,3 +1,9 @@
+## v0.4.1 (2026-01-27)
+
+### Fix
+
+- **playwright**: add output-dir and unrestricted file access
+
 ## v0.4.0 (2026-01-27)
 
 ### Feat
