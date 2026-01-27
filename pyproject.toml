@@ -1,6 +1,6 @@
 [project]
 name = "lobechat-aws"
-version = "0.4.3"
+version = "0.5.0"
 description = "Self-hosted LobeChat stack with PostgreSQL, Casdoor, and MinIO"
 readme = "README.md"
 
@@ -16,7 +16,7 @@ test = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.4.3"
+version = "0.5.0"
 version_files = [
     "pyproject.toml:^version"
 ]

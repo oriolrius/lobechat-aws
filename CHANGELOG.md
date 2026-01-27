@@ -1,3 +1,9 @@
+## v0.5.0 (2026-01-27)
+
+### Feat
+
+- **mcp**: add AWS resources operations MCP server with test
+
 ## v0.4.3 (2026-01-27)
 
 ### Feat

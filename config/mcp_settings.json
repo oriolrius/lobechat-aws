@@ -63,7 +63,7 @@
       "env": {}
     },
     "desktop-commander-mcp": {
-      "enabled": false,
+      "enabled": true,
       "owner": "admin",
       "command": "npx",
       "args": [
