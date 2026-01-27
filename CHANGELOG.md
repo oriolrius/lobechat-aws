@@ -1,3 +1,9 @@
+## v0.5.1 (2026-01-27)
+
+### Feat
+
+- **mcp**: add AWS Documentation MCP server
+
 ## v0.5.0 (2026-01-27)
 
 ### Feat
