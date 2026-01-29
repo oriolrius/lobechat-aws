@@ -14,7 +14,7 @@ Deploy LobeChat on AWS EC2 for ESADE students using the Innovation Sandbox.
 > aws ec2 stop-instances --instance-ids $INSTANCE_ID
 > ```
 >
-> When completely finished with the project, **terminate all resources** to stop all billing. See [Cleanup section](docs/INSTALLATION.md#cleanup-when-done) in the installation guide.
+> When completely finished with the project, **terminate all resources** to stop all billing. See [Cleanup section](docs/INSTALLATION.md#cleanup-when-done---destroy---terminate) in the installation guide.
 
 ---
 
@@ -104,7 +104,7 @@ sudo systemctl restart postgresql
 
 - **Stop** instance when not in use: `aws ec2 stop-instances --instance-ids <ID>`
 - **Start** when needed: `aws ec2 start-instances --instance-ids <ID>`
-- **Terminate** when done (deletes everything): see [Cleanup section](docs/INSTALLATION.md#cleanup-when-done)
+- **Terminate** when done (deletes everything): see [Cleanup section](docs/INSTALLATION.md#cleanup-when-done---destroy---terminate)
 
 Note: Public IP changes after stop/start.
 
@@ -122,6 +122,6 @@ v1.0.0 - EC2 deployment for ESADE students
 >
 > When you're completely done with your LobeChat deployment, **delete all AWS resources** to avoid any further charges:
 >
-> - [Cleanup Instructions](docs/INSTALLATION.md#cleanup-when-done)
+> - [Cleanup Instructions](docs/INSTALLATION.md#cleanup-when-done---destroy---terminate)
 >
 > This deletes the EC2 instance, VPC, security groups, and all associated resources. Your sandbox budget is limited - don't waste it on idle resources!
