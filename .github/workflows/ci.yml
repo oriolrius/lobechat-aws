@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [v2.x]
+  pull_request:
+    branches: [v2.x]
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  lobechat-checks:
+    name: LobeChat Quick Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Clone LobeChat
+        run: git clone --depth 1 https://github.com/lobehub/lobe-chat.git
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: lobe-chat/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: lobe-chat
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        working-directory: lobe-chat
+        run: pnpm type-check
+
+      - name: Lint TypeScript
+        working-directory: lobe-chat
+        run: pnpm lint:ts
