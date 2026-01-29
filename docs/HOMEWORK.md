@@ -2,6 +2,9 @@
 
 Deploy LobeChat to AWS using CloudFormation.
 
+> **Cost Warning**: The EC2 instance costs ~$0.35/hour (~$8.40/day).
+> **Delete the stack immediately after completing this exercise!**
+
 ## Prerequisites
 
 - Access to ESADE Innovation Sandbox on AWS
@@ -100,7 +103,13 @@ PUBLIC_IP=$(aws cloudformation describe-stacks \
 ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP "tail -f /var/log/user-data.log"
 ```
 
-Wait until you see: `LobeChat installation complete!`
+Wait until you see:
+
+```
+============================================
+   INSTALLATION COMPLETE!
+============================================
+```
 
 ---
 
@@ -116,21 +125,40 @@ You should see the LobeChat login page. Create an account and start using it.
 
 ---
 
-## Step 8: Cleanup (When Finished)
+## Step 8: Cleanup (MANDATORY!)
 
-Delete all resources to stop billing:
+> **Do not skip this step!** Leaving the stack running will consume your AWS budget.
+
+Delete all resources:
 
 ```bash
 aws cloudformation delete-stack --stack-name lobechat
 ```
 
-Verify deletion:
+Wait for deletion to complete:
+
+```bash
+aws cloudformation wait stack-delete-complete --stack-name lobechat
+echo "Stack deleted successfully!"
+```
+
+Or verify manually:
 
 ```bash
 aws cloudformation describe-stacks --stack-name lobechat
+# Should return: "Stack with id lobechat does not exist"
 ```
 
-Should return an error: `Stack with id lobechat does not exist`
+---
+
+## Cost Reference
+
+| Resource | Cost | If left running 24h |
+|----------|------|---------------------|
+| EC2 c7a.2xlarge | ~$0.35/hour | ~$8.40/day |
+| EBS 20GB gp3 | ~$1.60/month | ~$0.05/day |
+
+**This exercise should cost less than $1 if you delete the stack within 2-3 hours.**
 
 ---
 
@@ -185,6 +213,15 @@ ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP "sudo systemctl status lobechat
 | 5 | Get outputs | 1 min |
 | 6 | Wait for installation | 15 min |
 | 7 | Access LobeChat | - |
-| 8 | Cleanup | 2 min |
+| 8 | **Cleanup (don't skip!)** | 2 min |
 
 **Total time**: ~25 minutes
+
+---
+
+## Checklist
+
+- [ ] Deployed CloudFormation stack
+- [ ] Accessed LobeChat in browser
+- [ ] Created an account and tested the app
+- [ ] **Deleted the stack to avoid costs**
