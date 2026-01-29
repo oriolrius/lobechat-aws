@@ -1,12 +1,14 @@
 # LobeChat Installation Guide (Non-Docker)
 
-This guide is designed for **ESADE students** using the Innovation Sandbox on AWS with the **student role** (`esadeis_IsbUsersPS`). It covers deploying LobeChat with PostgreSQL and Casdoor SSO on an EC2 instance.
+This guide is designed for **ESADE students** using the Innovation Sandbox on AWS with the **student role** (`esadeis_IsbUsersPS`). It covers deploying LobeChat with PostgreSQL on an EC2 instance.
 
 ## Prerequisites
 
 - Access to ESADE Innovation Sandbox on AWS
 - AWS CLI installed locally (`brew install awscli` or `apt install awscli`)
 - SSH client
+
+> **Instance Size**: This guide uses **t3a.medium** (2 vCPU, 4GB RAM, ~$0.04/hour). The Next.js build requires at least 4GB RAM. For faster builds, consider **c6a.2xlarge** (8 vCPU, 16GB RAM, ~$0.31/hour).
 
 ---
 
@@ -65,17 +67,16 @@ echo "Route Table: $RTB_ID"
 # Create security group
 SG_ID=$(aws ec2 create-security-group --group-name lobechat-sg --description "LobeChat security group" --vpc-id $VPC_ID --query 'GroupId' --output text)
 aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 22 --cidr 0.0.0.0/0
-aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 80 --cidr 0.0.0.0/0
-aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 443 --cidr 0.0.0.0/0
 aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 3210 --cidr 0.0.0.0/0
-aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 8000 --cidr 0.0.0.0/0
 echo "Security Group: $SG_ID"
 ```
 
 Save these IDs for later:
 ```bash
 echo "VPC_ID=$VPC_ID" >> ~/.lobechat_aws
+echo "IGW_ID=$IGW_ID" >> ~/.lobechat_aws
 echo "SUBNET_ID=$SUBNET_ID" >> ~/.lobechat_aws
+echo "RTB_ID=$RTB_ID" >> ~/.lobechat_aws
 echo "SG_ID=$SG_ID" >> ~/.lobechat_aws
 ```
 
@@ -104,10 +105,10 @@ AMI_ID=$(aws ec2 describe-images --owners 099720109477 \
   --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' --output text)
 echo "AMI: $AMI_ID"
 
-# Launch instance (t3a.small: 2 vCPU, 2GB RAM)
+# Launch instance (t3a.medium: 2 vCPU, 4GB RAM - required for building LobeChat)
 INSTANCE_ID=$(aws ec2 run-instances \
   --image-id $AMI_ID \
-  --instance-type t3a.small \
+  --instance-type t3a.medium \
   --key-name lobechat-key \
   --security-group-ids $SG_ID \
   --subnet-id $SUBNET_ID \
@@ -115,6 +116,7 @@ INSTANCE_ID=$(aws ec2 run-instances \
   --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=lobechat-server}]' \
   --query 'Instances[0].InstanceId' --output text)
 echo "Instance: $INSTANCE_ID"
+echo "INSTANCE_ID=$INSTANCE_ID" >> ~/.lobechat_aws
 
 # Wait for instance to be running
 echo "Waiting for instance to start..."
@@ -164,11 +166,10 @@ sudo systemctl start postgresql
 ### Configure PostgreSQL
 
 ```bash
-# Set password and create databases
+# Set password and create database
 sudo -u postgres psql << 'EOF'
 ALTER USER postgres WITH PASSWORD 'lobechat-db-password';
 CREATE DATABASE lobechat;
-CREATE DATABASE casdoor;
 \c lobechat
 CREATE EXTENSION IF NOT EXISTS vector;
 EOF
@@ -186,154 +187,43 @@ node --version  # Should show v20.x.x
 
 ---
 
-## Step 7: Install Casdoor
+## Step 7: Install LobeChat
 
 ```bash
-# Download Casdoor
-sudo mkdir -p /opt/casdoor
-cd /opt/casdoor
-sudo wget https://github.com/casdoor/casdoor/releases/download/v1.778.0/linux_amd64.zip
-sudo apt install -y unzip
-sudo unzip linux_amd64.zip
-sudo rm linux_amd64.zip
-sudo chmod +x server
-```
+# Install git, build tools, and unzip (needed for bun)
+sudo apt install -y git build-essential unzip
 
-### Configure Casdoor
+# Install pnpm (LobeChat uses pnpm workspaces)
+sudo npm install -g pnpm
 
-Get your server's public IP:
-```bash
-PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
-echo "Server IP: $PUBLIC_IP"
-```
-
-Create configuration:
-```bash
-sudo mkdir -p /opt/casdoor/conf
-
-# Generate random secrets
-CLIENT_ID=$(openssl rand -hex 10)
-CLIENT_SECRET=$(openssl rand -hex 20)
-
-sudo tee /opt/casdoor/conf/app.conf << EOF
-appname = casdoor
-httpport = 8000
-runmode = prod
-driverName = postgres
-dataSourceName = user=postgres password=lobechat-db-password host=localhost port=5432 sslmode=disable dbname=casdoor
-origin = http://$PUBLIC_IP:8000
-staticBaseUrl = "https://cdn.casbin.org"
-initDataFile = "./conf/init_data.json"
-EOF
-```
-
-Create initial data with LobeChat application:
-```bash
-sudo tee /opt/casdoor/conf/init_data.json << EOF
-{
-  "organizations": [
-    {
-      "owner": "admin",
-      "name": "lobechat",
-      "displayName": "LobeChat",
-      "websiteUrl": "https://lobehub.com",
-      "passwordType": "plain",
-      "passwordOptions": ["AtLeast6"]
-    }
-  ],
-  "applications": [
-    {
-      "owner": "admin",
-      "name": "lobechat",
-      "displayName": "LobeChat",
-      "organization": "lobechat",
-      "cert": "cert-built-in",
-      "enablePassword": true,
-      "enableSignUp": true,
-      "clientId": "$CLIENT_ID",
-      "clientSecret": "$CLIENT_SECRET",
-      "redirectUris": ["http://$PUBLIC_IP:3210/api/auth/callback/casdoor"],
-      "tokenFormat": "JWT",
-      "expireInHours": 168,
-      "grantTypes": ["authorization_code", "refresh_token"]
-    }
-  ],
-  "users": [
-    {
-      "owner": "lobechat",
-      "name": "admin",
-      "type": "normal-user",
-      "password": "admin123",
-      "displayName": "Admin User",
-      "email": "admin@example.com",
-      "isAdmin": true
-    }
-  ]
-}
-EOF
-
-# Save credentials for LobeChat setup
-echo "CLIENT_ID=$CLIENT_ID" | sudo tee /opt/casdoor/.credentials
-echo "CLIENT_SECRET=$CLIENT_SECRET" | sudo tee -a /opt/casdoor/.credentials
-echo "PUBLIC_IP=$PUBLIC_IP" | sudo tee -a /opt/casdoor/.credentials
-```
-
-### Create Casdoor service
-
-```bash
-sudo tee /etc/systemd/system/casdoor.service << 'EOF'
-[Unit]
-Description=Casdoor SSO Server
-After=network.target postgresql.service
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/casdoor
-ExecStart=/opt/casdoor/server --createDatabase=true
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable casdoor
-sudo systemctl start casdoor
-```
-
-Verify Casdoor is running:
-```bash
-sleep 5
-curl -s http://localhost:8000/api/health | head -1
-```
-
----
-
-## Step 8: Install LobeChat
-
-```bash
-# Install git and build tools
-sudo apt install -y git build-essential
+# Install bun (needed for database migrations)
+curl -fsSL https://bun.sh/install | bash
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
 
 # Clone and build LobeChat
 sudo mkdir -p /opt/lobechat
 sudo chown ubuntu:ubuntu /opt/lobechat
 cd /opt/lobechat
 git clone --depth 1 https://github.com/lobehub/lobe-chat.git .
-npm install
-npm run build
+pnpm install
+pnpm run build
 ```
+
+> **Note**: The build requires ~4GB RAM (t3a.medium or larger). On smaller instances, the build will fail with out-of-memory errors.
 
 ### Configure LobeChat
 
 ```bash
-# Load Casdoor credentials
-source /opt/casdoor/.credentials
+# Get public IP
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
+echo "Server IP: $PUBLIC_IP"
 
 # Generate secrets
 NEXT_AUTH_SECRET=$(openssl rand -base64 32)
 KEY_VAULTS_SECRET=$(openssl rand -base64 32)
+BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 
 cat > /opt/lobechat/.env.local << EOF
 # App URL
@@ -341,18 +231,14 @@ APP_URL=http://$PUBLIC_IP:3210
 NEXTAUTH_URL=http://$PUBLIC_IP:3210
 AUTH_URL=http://$PUBLIC_IP:3210
 
-# Database
+# Database (use node driver for local PostgreSQL)
 DATABASE_URL=postgresql://postgres:lobechat-db-password@localhost:5432/lobechat
+DATABASE_DRIVER=node
 
 # Authentication
-NEXT_AUTH_SSO_PROVIDERS=casdoor
 NEXT_AUTH_SECRET=$NEXT_AUTH_SECRET
+BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 AUTH_TRUST_HOST=true
-
-# Casdoor
-AUTH_CASDOOR_ISSUER=http://$PUBLIC_IP:8000
-AUTH_CASDOOR_ID=$CLIENT_ID
-AUTH_CASDOOR_SECRET=$CLIENT_SECRET
 
 # Security
 KEY_VAULTS_SECRET=$KEY_VAULTS_SECRET
@@ -361,13 +247,19 @@ KEY_VAULTS_SECRET=$KEY_VAULTS_SECRET
 # OPENROUTER_API_KEY=sk-or-v1-your-key
 # ENABLED_OPENROUTER=1
 EOF
+
+# Save public IP for later
+echo "PUBLIC_IP=$PUBLIC_IP" > ~/.lobechat_config
 ```
 
 ### Run database migrations
 
 ```bash
 cd /opt/lobechat
-npm run db:migrate
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+source .env.local
+MIGRATION_DB=1 bun run ./scripts/migrateServerDB/index.ts
 ```
 
 ### Create LobeChat service
@@ -376,15 +268,16 @@ npm run db:migrate
 sudo tee /etc/systemd/system/lobechat.service << 'EOF'
 [Unit]
 Description=LobeChat Application
-After=network.target postgresql.service casdoor.service
+After=network.target postgresql.service
 
 [Service]
 Type=simple
 User=ubuntu
 WorkingDirectory=/opt/lobechat
+EnvironmentFile=/opt/lobechat/.env.local
 Environment=NODE_ENV=production
 Environment=PORT=3210
-ExecStart=/usr/bin/npm start
+ExecStart=/usr/bin/pnpm start
 Restart=always
 RestartSec=5
 
@@ -399,25 +292,20 @@ sudo systemctl start lobechat
 
 ---
 
-## Step 9: Verify Installation
+## Step 8: Verify Installation
 
 ```bash
 # Check all services
 sudo systemctl status postgresql --no-pager
-sudo systemctl status casdoor --no-pager
 sudo systemctl status lobechat --no-pager
 
-# Get URLs
-source /opt/casdoor/.credentials
+# Get URL
+source ~/.lobechat_config
 echo ""
 echo "============================================"
 echo "Installation Complete!"
 echo "============================================"
 echo "LobeChat:  http://$PUBLIC_IP:3210"
-echo "Casdoor:   http://$PUBLIC_IP:8000"
-echo ""
-echo "Default Casdoor admin: admin / admin123"
-echo "(Change this password immediately!)"
 echo "============================================"
 ```
 
@@ -426,9 +314,8 @@ echo "============================================"
 ## Accessing LobeChat
 
 1. Open `http://<PUBLIC_IP>:3210` in your browser
-2. Click "Sign in with Casdoor"
-3. Login with: `admin` / `admin123`
-4. Go to Settings to add AI provider API keys (OpenRouter, OpenAI, etc.)
+2. Create an account using the signup form
+3. Go to Settings to add AI provider API keys (OpenRouter, OpenAI, etc.)
 
 ---
 
@@ -459,7 +346,6 @@ aws ec2 terminate-instances --instance-ids $INSTANCE_ID
 ```bash
 # On the EC2 instance
 sudo journalctl -u lobechat -f
-sudo journalctl -u casdoor -f
 ```
 
 ---
@@ -519,11 +405,4 @@ aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].
 
 # Check security group allows SSH
 aws ec2 describe-security-groups --group-ids $SG_ID
-```
-
-### Casdoor login fails
-Verify redirect URI matches exactly:
-```bash
-source /opt/casdoor/.credentials
-echo "Expected: http://$PUBLIC_IP:3210/api/auth/callback/casdoor"
 ```
