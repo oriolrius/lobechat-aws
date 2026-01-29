@@ -34,6 +34,7 @@ export AWS_DEFAULT_REGION="eu-west-1"
 ```
 
 4. Verify credentials work:
+
 ```bash
 aws sts get-caller-identity
 ```
@@ -79,6 +80,7 @@ echo "Security Group: $SG_ID"
 ```
 
 Save these IDs for later:
+
 ```bash
 echo "VPC_ID=$VPC_ID" >> ~/.lobechat_aws
 echo "IGW_ID=$IGW_ID" >> ~/.lobechat_aws
@@ -301,6 +303,7 @@ git clone --depth 1 https://github.com/lobehub/lobe-chat.git .
 **Purpose**: Set all configuration variables. The build process bakes some values into the app, so this must be done first.
 
 **Critical**:
+
 - `APP_URL` and `S3_ENDPOINT` must use your public IP, not localhost
 - `AUTH_SECRET` and `KEY_VAULTS_SECRET` must be random 32+ character strings
 - Create `.env` (not `.env.local`) - the build reads from `.env`
@@ -487,7 +490,7 @@ sudo journalctl -u lobechat -f
 
 ---
 
-## Cleanup (When Done)
+## Cleanup (When Done) - Destroy - Terminate
 
 **Purpose**: Delete all AWS resources to stop billing. The sandbox has limited budget.
 
@@ -529,15 +532,18 @@ echo "All resources deleted!"
 ## Troubleshooting
 
 ### "Credentials expired"
+
 Refresh credentials from the Innovation Sandbox portal (Step 0).
 
 ### LobeChat shows blank page
+
 ```bash
 sudo journalctl -u lobechat -n 50
 # Check if database connection works
 ```
 
 ### Can't connect to instance
+
 ```bash
 # Check instance is running
 aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].State.Name'
@@ -547,4 +553,5 @@ aws ec2 describe-security-groups --group-ids $SG_ID
 ```
 
 ### File uploads fail or show localhost error
+
 Check that `S3_ENDPOINT` in `.env` uses the public IP, not localhost. Rebuild if you change it.
