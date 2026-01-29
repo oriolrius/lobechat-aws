@@ -1,6 +1,6 @@
 # LobeChat AWS - Infrastructure as Code
 
-Deploy **LobeChat to AWS** using CloudFormation.
+Deploy **LobeChat to AWS** using CloudFormation and Ansible.
 
 ---
 
@@ -34,6 +34,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 - AWS account (ESADE Innovation Sandbox)
 - AWS CLI installed
+- [uv](https://docs.astral.sh/uv/) installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 
 ### Deploy
 
@@ -49,20 +50,24 @@ aws ec2 create-key-pair --key-name lobechat-key \
   --query 'KeyMaterial' --output text > ~/.ssh/lobechat-key.pem
 chmod 400 ~/.ssh/lobechat-key.pem
 
-# 3. Deploy stack
+# 3. Deploy infrastructure (CloudFormation)
 aws cloudformation deploy \
   --template-file infra/cloudformation.yml \
   --stack-name lobechat \
   --capabilities CAPABILITY_IAM
 
-# 4. Get outputs
-aws cloudformation describe-stacks --stack-name lobechat \
-  --query 'Stacks[0].Outputs' --output table
+# 4. Get public IP and create inventory
+PUBLIC_IP=$(aws cloudformation describe-stacks --stack-name lobechat \
+  --query 'Stacks[0].Outputs[?OutputKey==`PublicIP`].OutputValue' --output text)
+sed "s/<PUBLIC_IP>/$PUBLIC_IP/" ansible/inventory.yml.template > ansible/inventory.yml
+
+# 5. Deploy application (Ansible)
+uv run ansible-playbook -i ansible/inventory.yml ansible/playbook.yml
 ```
 
 ### Access
 
-After ~15 minutes, access LobeChat at `http://<PUBLIC_IP>:3210`
+After Ansible completes, access LobeChat at `http://<PUBLIC_IP>:3210`
 
 ---
 
@@ -101,7 +106,7 @@ aws cloudformation delete-stack --stack-name lobechat
 | Security Group | Ports 22, 3210, 9000, 9001 |
 | EC2 Instance | c7a.2xlarge, Ubuntu 24.04 |
 
-### Services
+### Services (deployed via Ansible)
 
 - PostgreSQL 16 with pgvector
 - MinIO (S3-compatible storage)
@@ -115,4 +120,5 @@ aws cloudformation delete-stack --stack-name lobechat
 |--------|---------|
 | `v1.x` | Manual EC2 deployment guide |
 | `v2.x` | GitHub Actions CI/CD practice |
-| `v3.x` | Infrastructure as Code (this branch) |
+| `v3.x` | CloudFormation with UserData |
+| `v4.x` | CloudFormation + Ansible (this branch) |

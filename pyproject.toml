@@ -1,0 +1,11 @@
+[project]
+name = "lobechat-aws"
+version = "4.0.0"
+description = "Deploy LobeChat to AWS using CloudFormation and Ansible"
+requires-python = ">=3.11"
+dependencies = [
+    "ansible>=11.0.0",
+]
+
+[tool.uv]
+dev-dependencies = []

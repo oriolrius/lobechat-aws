@@ -1,6 +1,6 @@
 # Homework: Deploy LobeChat to AWS
 
-Deploy LobeChat to AWS using CloudFormation.
+Deploy LobeChat to AWS using CloudFormation and Ansible.
 
 ---
 
@@ -20,6 +20,7 @@ Deploy LobeChat to AWS using CloudFormation.
 
 - Access to ESADE Innovation Sandbox on AWS
 - AWS CLI installed (`brew install awscli` or `apt install awscli`)
+- uv installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 
 ---
 
@@ -50,7 +51,7 @@ aws sts get-caller-identity
 ```bash
 git clone https://github.com/oriolrius/lobechat-aws.git
 cd lobechat-aws
-git checkout v3.x
+git checkout v4.x
 ```
 
 ---
@@ -80,7 +81,7 @@ aws cloudformation deploy \
   --capabilities CAPABILITY_IAM
 ```
 
-This creates all AWS resources (VPC, subnet, security group, EC2 instance).
+This creates the AWS infrastructure (VPC, subnet, security group, EC2 instance).
 
 ---
 
@@ -93,38 +94,53 @@ aws cloudformation describe-stacks \
   --output table
 ```
 
-Note the **PublicIP** and **LobeChatURL** values.
+Note the **PublicIP** value.
 
 ---
 
-## Step 6: Wait for Installation
-
-The EC2 instance is now installing PostgreSQL, MinIO, and LobeChat. This takes **~15 minutes**.
-
-Monitor progress via SSH:
+## Step 6: Create Ansible Inventory
 
 ```bash
-# Get the public IP
 PUBLIC_IP=$(aws cloudformation describe-stacks \
   --stack-name lobechat \
   --query 'Stacks[0].Outputs[?OutputKey==`PublicIP`].OutputValue' \
   --output text)
 
-# Watch installation log
-ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP "tail -f /var/log/user-data.log"
+sed "s/<PUBLIC_IP>/$PUBLIC_IP/" ansible/inventory.yml.template > ansible/inventory.yml
+
+echo "Inventory created with IP: $PUBLIC_IP"
 ```
 
-Wait until you see:
+---
+
+## Step 7: Run Ansible Playbook
+
+Wait 1-2 minutes for the EC2 instance to be ready, then run:
+
+```bash
+uv run ansible-playbook -i ansible/inventory.yml ansible/playbook.yml
+```
+
+This will:
+- Install PostgreSQL 16 with pgvector
+- Install and configure MinIO
+- Install Node.js, pnpm, and bun
+- Clone, build, and deploy LobeChat
+
+Watch the output. When complete, you'll see:
 
 ```
 ============================================
    INSTALLATION COMPLETE!
 ============================================
+
+LobeChat is now running at:
+   http://<PUBLIC_IP>:3210
 ```
 
 ---
 
-## Step 7: Access LobeChat
+## Step 8: Access LobeChat
 
 Open your browser and go to:
 
@@ -136,7 +152,7 @@ You should see the LobeChat login page. Create an account and start using it.
 
 ---
 
-## Step 8: Cleanup (MANDATORY!)
+## Step 9: Cleanup (MANDATORY!)
 
 > **Do not skip this step!** Leaving the stack running will consume your AWS budget.
 
@@ -190,21 +206,29 @@ aws cloudformation describe-stack-events \
   --output table
 ```
 
-### Can't connect via SSH
+### Ansible connection refused
 
-1. Wait 2-3 minutes after stack creation
-2. Verify security group allows port 22
-3. Check instance is running:
+1. Wait 2-3 minutes after stack creation for the instance to boot
+2. Verify the IP in inventory.yml matches the stack output
+3. Test SSH manually:
 
 ```bash
-aws ec2 describe-instances \
-  --filters "Name=tag:Name,Values=lobechat-server" \
-  --query 'Reservations[0].Instances[0].State.Name'
+ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP
 ```
 
-### LobeChat not accessible
+### Ansible playbook fails
 
-1. Wait for installation to complete (~15 minutes)
+Re-run the playbook (Ansible is idempotent):
+
+```bash
+uv run ansible-playbook -i ansible/inventory.yml ansible/playbook.yml
+```
+
+Check specific task output for errors.
+
+### LobeChat not accessible after Ansible completes
+
+1. Wait 1-2 minutes for services to start
 2. Check service status:
 
 ```bash
@@ -215,24 +239,24 @@ ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP "sudo systemctl status lobechat
 
 ## Summary
 
-| Step | Action | Time |
-|------|--------|------|
-| 1 | Get AWS credentials | 1 min |
-| 2 | Clone repository | 1 min |
-| 3 | Create SSH key | 1 min |
-| 4 | Deploy stack | 3-5 min |
-| 5 | Get outputs | 1 min |
-| 6 | Wait for installation | 15 min |
-| 7 | Access LobeChat | - |
-| 8 | **Cleanup (don't skip!)** | 2 min |
-
-**Total time**: ~25 minutes
+| Step | Action |
+|------|--------|
+| 1 | Get AWS credentials |
+| 2 | Clone repository |
+| 3 | Create SSH key |
+| 4 | Deploy CloudFormation stack |
+| 5 | Get stack outputs |
+| 6 | Create Ansible inventory |
+| 7 | Run Ansible playbook |
+| 8 | Access LobeChat |
+| 9 | **Cleanup (don't skip!)** |
 
 ---
 
 ## Checklist
 
 - [ ] Deployed CloudFormation stack
+- [ ] Ran Ansible playbook successfully
 - [ ] Accessed LobeChat in browser
 - [ ] Created an account and tested the app
 - [ ] **Deleted the stack to avoid costs**

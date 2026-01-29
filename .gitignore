@@ -8,6 +8,15 @@ data/
 aws_credentials.yaml
 *.pem
 
+# Ansible generated inventory (contains IP)
+ansible/inventory.yml
+
+# Python/uv
+.venv/
+__pycache__/
+*.pyc
+uv.lock
+
 # IDE
 .idea/
 .vscode/
