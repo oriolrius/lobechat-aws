@@ -2,6 +2,22 @@
 
 Deploy LobeChat on AWS EC2 for ESADE students using the Innovation Sandbox.
 
+---
+
+> **IMPORTANT: STOP YOUR INSTANCE WHEN NOT IN USE**
+>
+> EC2 instances cost **~$0.35/hour** (~$8.40/day). Always stop your instance when you're done working to avoid unnecessary charges on your sandbox budget.
+>
+> ```bash
+> # Stop instance (from your local machine)
+> source ~/.lobechat_aws
+> aws ec2 stop-instances --instance-ids $INSTANCE_ID
+> ```
+>
+> When completely finished with the project, **terminate all resources** to stop all billing. See [Cleanup section](docs/INSTALLATION.md#cleanup-when-done) in the installation guide.
+
+---
+
 ## What You Get
 
 - **LobeChat**: AI chat platform supporting multiple providers (OpenRouter, OpenAI, Anthropic, etc.)
@@ -11,17 +27,13 @@ Deploy LobeChat on AWS EC2 for ESADE students using the Innovation Sandbox.
 
 ## Quick Start
 
-Follow the step-by-step guide: **[INSTALLATION.md](INSTALLATION.md)**
+Follow the step-by-step guide: **[docs/INSTALLATION.md](docs/INSTALLATION.md)**
 
 Total deployment time: ~16 minutes
 
 ## Architecture
 
-```
-Browser --> LobeChat (:3210) --> PostgreSQL (:5432)
-                |
-                +--> MinIO (:9000) --> /opt/minio/data
-```
+![LobeChat EC2 Architecture](docs/architecture.png)
 
 All services run on a single EC2 instance (Ubuntu 24.04).
 
@@ -92,14 +104,24 @@ sudo systemctl restart postgresql
 
 - **Stop** instance when not in use: `aws ec2 stop-instances --instance-ids <ID>`
 - **Start** when needed: `aws ec2 start-instances --instance-ids <ID>`
-- **Terminate** when done (deletes everything): see Cleanup section in INSTALLATION.md
+- **Terminate** when done (deletes everything): see [Cleanup section](docs/INSTALLATION.md#cleanup-when-done)
 
 Note: Public IP changes after stop/start.
 
 ## Troubleshooting
 
-See the Troubleshooting section in [INSTALLATION.md](INSTALLATION.md).
+See the [Troubleshooting section](docs/INSTALLATION.md#troubleshooting) in the installation guide.
 
 ## Version
 
 v1.0.0 - EC2 deployment for ESADE students
+
+---
+
+> **REMINDER: DON'T FORGET TO CLEAN UP**
+>
+> When you're completely done with your LobeChat deployment, **delete all AWS resources** to avoid any further charges:
+>
+> - [Cleanup Instructions](docs/INSTALLATION.md#cleanup-when-done)
+>
+> This deletes the EC2 instance, VPC, security groups, and all associated resources. Your sandbox budget is limited - don't waste it on idle resources!
