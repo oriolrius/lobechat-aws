@@ -8,7 +8,7 @@ This branch (`v2.x`) focuses on **CI/CD practice** with GitHub Actions.
 
 ## Homework
 
-**[HOMEWORK.md](HOMEWORK.md)** - Add your name to practice GitHub workflows.
+**[HOMEWORK.md](docs/HOMEWORK.md)** - Add your name to practice GitHub workflows.
 
 ### Solution Steps
 
@@ -20,10 +20,10 @@ git clone https://github.com/<YOUR-USERNAME>/lobechat-aws.git
 cd lobechat-aws
 git checkout v2.x
 
-# 3. Edit HOMEWORK.md - add your name to the list
+# 3. Edit docs/HOMEWORK.md - add your name to the list
 
 # 4. Commit with conventional message
-git add HOMEWORK.md
+git add docs/HOMEWORK.md
 git commit -m "docs: add <your-name> to homework"
 
 # 5. Push to your fork

@@ -18,9 +18,10 @@ GitHub Actions Practice - A hands-on exercise for ESADE students to learn CI/CD 
 │   └── release.yml      # CI checks + auto-creates releases on tags
 ├── docs/
 │   ├── CI-CD.md         # Detailed CI/CD pipeline documentation
-│   └── *.drawio/*.png   # Architecture diagrams (draw.io source + PNG exports)
+│   ├── HOMEWORK.md      # Student exercise instructions
+│   ├── images/          # PNG exports of diagrams
+│   └── diagrams/        # Draw.io source files
 ├── README.md            # Quick start and solution steps
-├── HOMEWORK.md          # Student exercise instructions
 ├── CONTRIBUTING.md      # Contribution guidelines
 ├── CLAUDE.md            # This file
 └── .gitignore
@@ -59,7 +60,7 @@ ci: update Node.js version
 Students practice the fork/PR workflow:
 
 1. Fork the repository
-2. Edit `HOMEWORK.md` - add name to the list
+2. Edit `docs/HOMEWORK.md` - add name to the list
 3. Commit with `docs: add <name> to homework`
 4. Push and create PR to `v2.x`
 5. Verify CI workflows pass (green checkmarks)

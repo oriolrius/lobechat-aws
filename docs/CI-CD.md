@@ -10,7 +10,7 @@ The repository uses GitHub Actions to automate code quality checks and release m
 2. Code passes type checking and linting before release
 3. Releases are only created after CI passes
 
-![Pipeline Overview](pipeline-overview.png)
+![Pipeline Overview](images/pipeline-overview.png)
 
 ## Workflow Files
 
@@ -43,7 +43,7 @@ on:
 
 ### Job: `lobechat-checks`
 
-![CI Workflow Steps](ci-workflow-steps.png)
+![CI Workflow Steps](images/ci-workflow-steps.png)
 
 ### Configuration Details
 
@@ -74,7 +74,7 @@ on:
 
 ### Job: `commitlint`
 
-![Commit Lint Workflow Steps](commitlint-workflow-steps.png)
+![Commit Lint Workflow Steps](images/commitlint-workflow-steps.png)
 
 ### Conventional Commit Format
 
@@ -135,7 +135,7 @@ on:
 
 ### Job Dependencies
 
-![Job Dependencies](job-dependencies.png)
+![Job Dependencies](images/job-dependencies.png)
 
 The `release` job has `needs: ci`, meaning:
 - CI must complete successfully before release runs
@@ -153,7 +153,7 @@ Runs the same checks as `ci.yml`:
 
 ### Job 2: `release` (Create Release)
 
-![Release Workflow Steps](release-workflow-steps.png)
+![Release Workflow Steps](images/release-workflow-steps.png)
 
 ### Release Artifacts
 
@@ -173,7 +173,7 @@ permissions:
 
 ## Workflow Interaction Diagram
 
-![Workflow Interaction](workflow-interaction.png)
+![Workflow Interaction](images/workflow-interaction.png)
 
 ---
 
@@ -210,7 +210,7 @@ git push origin v2.2.0
 
 ### If CI Fails
 
-![CI Fails - Release Skipped](ci-fails.png)
+![CI Fails - Release Skipped](images/ci-fails.png)
 
 - Release job is **skipped**
 - No release is created

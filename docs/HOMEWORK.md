@@ -29,4 +29,4 @@ Screenshot showing:
 - Commit message must start with: `docs:`, `feat:`, `fix:`, etc.
 - Check the Actions tab to see workflows running
 - If CI fails, check the logs and fix your commit message
-- See [docs/CI-CD.md](docs/CI-CD.md) for detailed CI/CD pipeline documentation
+- See [CI-CD.md](CI-CD.md) for detailed CI/CD pipeline documentation
