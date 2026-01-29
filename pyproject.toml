@@ -8,4 +8,14 @@ dependencies = [
 ]
 
 [tool.uv]
-dev-dependencies = []
+dev-dependencies = [
+    "commitizen>=4.0.0",
+]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "4.0.0"
+version_files = ["pyproject.toml:^version"]
+tag_format = "v$version"
+update_changelog_on_bump = true
+major_version_zero = false
