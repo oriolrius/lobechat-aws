@@ -59,6 +59,8 @@ git push origin v2.x
 | `commitlint.yml` | PR to v2.x | Validate commit messages |
 | `release.yml` | Tag `v*.*.*` | Auto-create releases |
 
+> **Deep Dive**: See [docs/CI-CD.md](docs/CI-CD.md) for detailed pipeline documentation with diagrams.
+
 ---
 
 ## Commit Convention
