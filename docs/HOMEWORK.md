@@ -1,32 +1,190 @@
-# Homework: GitHub Actions Practice
+# Homework: Deploy LobeChat to AWS
 
-## Objective
+Deploy LobeChat to AWS using CloudFormation.
 
-Practice GitHub workflows by contributing to this repository.
+## Prerequisites
 
-## Task
+- Access to ESADE Innovation Sandbox on AWS
+- AWS CLI installed (`brew install awscli` or `apt install awscli`)
 
-1. **Fork** this repository
-2. **Add your name** to the list below
-3. **Commit** using the convention: `docs: add <your-name> to homework`
-4. **Push** to your fork
-5. **Create a Pull Request** to `v2.x` branch
-6. **Verify** the CI workflows pass (green checkmarks)
+---
 
-## Student Submissions
+## Step 1: Get AWS Credentials
 
-<!-- Add your name below in alphabetical order -->
+1. Go to the Innovation Sandbox portal
+2. Click **"Login to account"** for your lease
+3. Click **"Access keys"** next to `esadeis_IsbUsersPS`
+4. Copy the export commands and run them in your terminal:
 
-- (your name here)
+```bash
+export AWS_ACCESS_KEY_ID="ASIA..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_SESSION_TOKEN="..."
+export AWS_DEFAULT_REGION="eu-west-1"
+```
 
-## Deliverable
+5. Verify credentials:
 
-Screenshot showing:
-- Your PR with green CI checks
+```bash
+aws sts get-caller-identity
+```
 
-## Tips
+---
 
-- Commit message must start with: `docs:`, `feat:`, `fix:`, etc.
-- Check the Actions tab to see workflows running
-- If CI fails, check the logs and fix your commit message
-- See [CI-CD.md](CI-CD.md) for detailed CI/CD pipeline documentation
+## Step 2: Clone the Repository
+
+```bash
+git clone https://github.com/oriolrius/lobechat-aws.git
+cd lobechat-aws
+git checkout v3.x
+```
+
+---
+
+## Step 3: Create SSH Key Pair
+
+```bash
+aws ec2 create-key-pair \
+  --key-name lobechat-key \
+  --query 'KeyMaterial' \
+  --output text > ~/.ssh/lobechat-key.pem
+
+chmod 400 ~/.ssh/lobechat-key.pem
+```
+
+> If the key already exists, skip this step or delete it first:
+> `aws ec2 delete-key-pair --key-name lobechat-key`
+
+---
+
+## Step 4: Deploy CloudFormation Stack
+
+```bash
+aws cloudformation deploy \
+  --template-file infra/cloudformation.yml \
+  --stack-name lobechat \
+  --capabilities CAPABILITY_IAM
+```
+
+This creates all AWS resources (VPC, subnet, security group, EC2 instance).
+
+---
+
+## Step 5: Get Stack Outputs
+
+```bash
+aws cloudformation describe-stacks \
+  --stack-name lobechat \
+  --query 'Stacks[0].Outputs' \
+  --output table
+```
+
+Note the **PublicIP** and **LobeChatURL** values.
+
+---
+
+## Step 6: Wait for Installation
+
+The EC2 instance is now installing PostgreSQL, MinIO, and LobeChat. This takes **~15 minutes**.
+
+Monitor progress via SSH:
+
+```bash
+# Get the public IP
+PUBLIC_IP=$(aws cloudformation describe-stacks \
+  --stack-name lobechat \
+  --query 'Stacks[0].Outputs[?OutputKey==`PublicIP`].OutputValue' \
+  --output text)
+
+# Watch installation log
+ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP "tail -f /var/log/user-data.log"
+```
+
+Wait until you see: `LobeChat installation complete!`
+
+---
+
+## Step 7: Access LobeChat
+
+Open your browser and go to:
+
+```
+http://<PUBLIC_IP>:3210
+```
+
+You should see the LobeChat login page. Create an account and start using it.
+
+---
+
+## Step 8: Cleanup (When Finished)
+
+Delete all resources to stop billing:
+
+```bash
+aws cloudformation delete-stack --stack-name lobechat
+```
+
+Verify deletion:
+
+```bash
+aws cloudformation describe-stacks --stack-name lobechat
+```
+
+Should return an error: `Stack with id lobechat does not exist`
+
+---
+
+## Troubleshooting
+
+### "Credentials expired"
+
+Refresh credentials from the Innovation Sandbox portal (Step 1).
+
+### Stack creation failed
+
+Check the failure reason:
+
+```bash
+aws cloudformation describe-stack-events \
+  --stack-name lobechat \
+  --query 'StackEvents[?ResourceStatus==`CREATE_FAILED`].[LogicalResourceId,ResourceStatusReason]' \
+  --output table
+```
+
+### Can't connect via SSH
+
+1. Wait 2-3 minutes after stack creation
+2. Verify security group allows port 22
+3. Check instance is running:
+
+```bash
+aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=lobechat-server" \
+  --query 'Reservations[0].Instances[0].State.Name'
+```
+
+### LobeChat not accessible
+
+1. Wait for installation to complete (~15 minutes)
+2. Check service status:
+
+```bash
+ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP "sudo systemctl status lobechat"
+```
+
+---
+
+## Summary
+
+| Step | Action | Time |
+|------|--------|------|
+| 1 | Get AWS credentials | 1 min |
+| 2 | Clone repository | 1 min |
+| 3 | Create SSH key | 1 min |
+| 4 | Deploy stack | 3-5 min |
+| 5 | Get outputs | 1 min |
+| 6 | Wait for installation | 15 min |
+| 7 | Access LobeChat | - |
+| 8 | Cleanup | 2 min |
+
+**Total time**: ~25 minutes
