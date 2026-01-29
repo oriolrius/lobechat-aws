@@ -15,7 +15,9 @@ GitHub Actions Practice - A hands-on exercise for ESADE students to learn CI/CD 
 ├── .github/workflows/
 │   ├── ci.yml           # Lint and type checks on push/PR
 │   ├── commitlint.yml   # Validates conventional commit messages
-│   └── release.yml      # Auto-creates releases on version tags
+│   └── release.yml      # CI checks + auto-creates releases on tags
+├── docs/
+│   └── CI-CD.md         # Detailed CI/CD pipeline documentation
 ├── README.md            # Quick start and solution steps
 ├── HOMEWORK.md          # Student exercise instructions
 ├── CONTRIBUTING.md      # Contribution guidelines
@@ -29,7 +31,9 @@ GitHub Actions Practice - A hands-on exercise for ESADE students to learn CI/CD 
 |----------|------|---------|---------|
 | CI | `ci.yml` | Push/PR to v2.x | Clones LobeChat, runs type-check and lint |
 | Commit Lint | `commitlint.yml` | PR to v2.x | Validates commit messages follow conventional format |
-| Release | `release.yml` | Tag `v*.*.*` | Creates GitHub release with source archives |
+| Release | `release.yml` | Tag `v*.*.*` | Runs CI checks first, then creates GitHub release |
+
+> **Note**: Release workflow waits for CI to pass before creating a release. See [docs/CI-CD.md](docs/CI-CD.md) for details.
 
 ## Conventional Commits
 
