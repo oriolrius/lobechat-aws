@@ -10,17 +10,19 @@ LobeChat AWS Deployment - Installation guide and configuration for deploying Lob
 
 ```
 .
-├── INSTALLATION.md    # Step-by-step EC2 deployment guide
-├── README.md          # Project overview
-├── CLAUDE.md          # This file - Claude Code guidance
-├── .env.example       # Environment variable template
-├── .githooks/         # Git commit validation hooks
-└── .gitignore         # Git ignore patterns
+├── docs/
+│   ├── INSTALLATION.md  # Step-by-step EC2 deployment guide
+│   └── ARCHITECTURE.md  # Architecture documentation and diagrams
+├── README.md            # Project overview
+├── CLAUDE.md            # This file - Claude Code guidance
+├── .env.example         # Environment variable template
+├── .githooks/           # Git commit validation hooks
+└── .gitignore           # Git ignore patterns
 ```
 
 ## Key Files
 
-- `INSTALLATION.md`: Complete guide for deploying LobeChat on AWS EC2 with:
+- `docs/INSTALLATION.md`: Complete guide for deploying LobeChat on AWS EC2 with:
   - VPC/networking setup
   - EC2 instance provisioning (c7a.2xlarge)
   - PostgreSQL 16 with pgvector
