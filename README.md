@@ -1,85 +1,105 @@
-# LobeChat Local Stack
+# LobeChat on AWS EC2
 
-Self-hosted LobeChat with PostgreSQL, Casdoor authentication, and MinIO storage.
+Deploy LobeChat on AWS EC2 for ESADE students using the Innovation Sandbox.
+
+## What You Get
+
+- **LobeChat**: AI chat platform supporting multiple providers (OpenRouter, OpenAI, Anthropic, etc.)
+- **PostgreSQL + pgvector**: Database with vector embeddings for semantic search
+- **MinIO**: S3-compatible storage for file uploads
+- **Better-Auth**: Built-in user authentication
 
 ## Quick Start
 
-```bash
-docker compose up -d
-```
+Follow the step-by-step guide: **[INSTALLATION.md](INSTALLATION.md)**
+
+Total deployment time: ~16 minutes
 
 ## Architecture
 
-See [docs/architecture.drawio](docs/architecture.drawio) for visual diagram.
-
 ```
-User --> LobeChat (:47000)
-              |
-              +--> Casdoor (:47002)  --> PostgreSQL (casdoor db)
-              |
-              +--> MinIO (:47005)    --> ./data/minio
-              |
-              +--> PostgreSQL        --> ./data/postgres
-                   (lobechat db)
+Browser --> LobeChat (:3210) --> PostgreSQL (:5432)
+                |
+                +--> MinIO (:9000) --> /opt/minio/data
 ```
 
-## Services
+All services run on a single EC2 instance (Ubuntu 24.04).
 
-| Service | Container | Port | Description |
-|---------|-----------|------|-------------|
-| LobeChat | lobe-chat | 47000 | Main application |
-| Casdoor | casdoor | 47002 | SSO authentication |
-| MinIO S3 | minio | 47005 | Object storage API |
-| MinIO Console | minio | 47006 | Storage admin UI |
-| PostgreSQL | shared-postgres | - | Database (internal) |
+## Requirements
 
-## Access
+| Requirement | Details |
+|-------------|---------|
+| AWS Account | ESADE Innovation Sandbox |
+| Instance Type | c7a.2xlarge (8 vCPU, 16GB RAM) |
+| Storage | 20GB gp3 EBS |
+| Cost | ~$0.35/hour |
+
+## Access URLs
+
+After installation:
 
 | Service | URL |
 |---------|-----|
-| LobeChat | http://localhost:47000 |
-| Casdoor Admin | http://localhost:47002 |
-| MinIO Console | http://localhost:47006 |
+| LobeChat | `http://<PUBLIC_IP>:3210` |
+| MinIO Console | `http://<PUBLIC_IP>:9001` |
 
-## Credentials
+## Services
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| LobeChat | 3210 | Main chat application |
+| PostgreSQL | 5432 | Database (internal) |
+| MinIO API | 9000 | File storage |
+| MinIO Console | 9001 | Storage admin UI |
+
+## Default Credentials
 
 | Service | Username | Password |
 |---------|----------|----------|
-| LobeChat | user | pswd123 |
-| MinIO | minioadmin | minioadmin |
+| MinIO | lobechat | lobechat-minio-secret |
+| PostgreSQL | postgres | lobechat-db-password |
 
-## Commands
+LobeChat uses self-registration - create your account on first visit.
+
+## Key Files on EC2
+
+```
+/opt/lobechat/           # LobeChat application
+├── .env                 # Build-time config
+├── .env.local           # Runtime config (systemd reads this)
+└── ...
+
+/opt/minio/data/         # MinIO file storage
+/var/lib/postgresql/     # PostgreSQL data
+```
+
+## Managing the Instance
 
 ```bash
-docker compose up -d          # Start
-docker compose down           # Stop
-docker compose logs -f        # All logs
-docker compose logs -f lobe-chat  # LobeChat logs
-docker compose restart lobe-chat  # Restart service
+# SSH to instance
+ssh -i ~/.ssh/lobechat-key.pem ubuntu@<PUBLIC_IP>
+
+# View LobeChat logs
+sudo journalctl -u lobechat -f
+
+# Restart services
+sudo systemctl restart lobechat
+sudo systemctl restart minio
+sudo systemctl restart postgresql
 ```
 
-## Project Structure
+## Cost Management
 
-```
-.
-├── docker-compose.yml     # Stack definition
-├── .env                   # Environment variables
-├── config/
-│   ├── casdoor-app.conf   # Casdoor server config
-│   ├── init_data.json     # Casdoor initial data
-│   ├── init-postgres.sql  # Database init script
-│   └── esade.pem          # AWS SSH key (future use)
-├── data/
-│   ├── postgres/          # PostgreSQL data
-│   └── minio/             # Uploaded files
-└── docs/
-    └── architecture.drawio  # Architecture diagram
-```
+- **Stop** instance when not in use: `aws ec2 stop-instances --instance-ids <ID>`
+- **Start** when needed: `aws ec2 start-instances --instance-ids <ID>`
+- **Terminate** when done (deletes everything): see Cleanup section in INSTALLATION.md
 
-## Configuration
+Note: Public IP changes after stop/start.
 
-Edit `.env` for:
-- `AUTH_CASDOOR_*` - SSO settings
-- `S3_*` - MinIO storage
-- `POSTGRES_PASSWORD` - Database password
-- `KEY_VAULTS_SECRET` - API key encryption
+## Troubleshooting
+
+See the Troubleshooting section in [INSTALLATION.md](INSTALLATION.md).
+
+## Version
+
+v1.0.0 - EC2 deployment for ESADE students
