@@ -233,8 +233,10 @@ Resources:
           apt install -y git build-essential unzip
           npm install -g pnpm
 
-          # Install bun for database migrations
+          # Install bun for database migrations (symlink to /usr/local/bin for PATH access)
           sudo -u ubuntu bash -c 'curl -fsSL https://bun.sh/install | bash'
+          ln -sf /home/ubuntu/.bun/bin/bun /usr/local/bin/bun
+          ln -sf /home/ubuntu/.bun/bin/bunx /usr/local/bin/bunx
 
           # Clone LobeChat
           echo "Cloning LobeChat..."
@@ -289,9 +291,10 @@ Resources:
           echo "Building LobeChat (this takes 5-6 minutes)..."
           sudo -u ubuntu pnpm run build
 
-          # Run database migrations
+          # Run database migrations (bun is now in PATH via symlink)
           echo "Running database migrations..."
-          sudo -u ubuntu bash -c 'source ~/.bun/env && cd /opt/lobechat && source .env.local && MIGRATION_DB=1 bun run ./scripts/migrateServerDB/index.ts'
+          cd /opt/lobechat
+          sudo -u ubuntu bun run db:migrate
 
           # Create LobeChat service
           cat > /etc/systemd/system/lobechat.service << 'EOLOBECHAT'
@@ -318,8 +321,23 @@ Resources:
           systemctl enable lobechat
           systemctl start lobechat
 
-          echo "LobeChat installation complete!"
-          echo "Access LobeChat at: http://$PUBLIC_IP:3210"
+          echo ""
+          echo "============================================"
+          echo "   INSTALLATION COMPLETE!"
+          echo "============================================"
+          echo ""
+          echo "LobeChat is now running at:"
+          echo "   http://$PUBLIC_IP:3210"
+          echo ""
+          echo "MinIO Console:"
+          echo "   http://$PUBLIC_IP:9001"
+          echo "   User: lobechat"
+          echo "   Password: ${MinIOPassword}"
+          echo ""
+          echo "SSH access:"
+          echo "   ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP"
+          echo ""
+          echo "============================================"
 
 Outputs:
   VPCId:
