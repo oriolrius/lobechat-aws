@@ -2,8 +2,19 @@
 
 Deploy LobeChat to AWS using CloudFormation.
 
-> **Cost Warning**: The EC2 instance costs ~$0.35/hour (~$8.40/day).
-> **Delete the stack immediately after completing this exercise!**
+---
+
+> **IMPORTANT: DELETE YOUR STACK WHEN FINISHED**
+>
+> The EC2 instance costs **~$0.35/hour** (~$8.40/day). Delete the stack immediately after completing this exercise!
+>
+> ```bash
+> aws cloudformation delete-stack --stack-name lobechat
+> ```
+>
+> **Do not leave the stack running overnight!**
+
+---
 
 ## Prerequisites
 
