@@ -17,7 +17,8 @@ GitHub Actions Practice - A hands-on exercise for ESADE students to learn CI/CD 
 │   ├── commitlint.yml   # Validates conventional commit messages
 │   └── release.yml      # CI checks + auto-creates releases on tags
 ├── docs/
-│   └── CI-CD.md         # Detailed CI/CD pipeline documentation
+│   ├── CI-CD.md         # Detailed CI/CD pipeline documentation
+│   └── *.drawio/*.png   # Architecture diagrams (draw.io source + PNG exports)
 ├── README.md            # Quick start and solution steps
 ├── HOMEWORK.md          # Student exercise instructions
 ├── CONTRIBUTING.md      # Contribution guidelines

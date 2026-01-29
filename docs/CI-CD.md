@@ -10,34 +10,7 @@ The repository uses GitHub Actions to automate code quality checks and release m
 2. Code passes type checking and linting before release
 3. Releases are only created after CI passes
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           CI/CD Pipeline Overview                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   Developer                                                                  │
-│      │                                                                       │
-│      ▼                                                                       │
-│   ┌──────────┐     ┌──────────────┐     ┌──────────────┐                    │
-│   │  Commit  │────▶│  Push to     │────▶│  CI Workflow │                    │
-│   │  Code    │     │  Branch      │     │  (ci.yml)    │                    │
-│   └──────────┘     └──────────────┘     └──────┬───────┘                    │
-│                                                 │                            │
-│                                                 ▼                            │
-│   ┌──────────┐     ┌──────────────┐     ┌──────────────┐                    │
-│   │  Create  │────▶│  Commitlint  │────▶│  Review &    │                    │
-│   │  PR      │     │  Workflow    │     │  Merge       │                    │
-│   └──────────┘     └──────────────┘     └──────┬───────┘                    │
-│                                                 │                            │
-│                                                 ▼                            │
-│   ┌──────────┐     ┌──────────────┐     ┌──────────────┐                    │
-│   │  Create  │────▶│  Release     │────▶│  GitHub      │                    │
-│   │  Tag     │     │  Workflow    │     │  Release     │                    │
-│   └──────────┘     │  (CI + Rel)  │     │  Created     │                    │
-│                    └──────────────┘     └──────────────┘                    │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+![Pipeline Overview](pipeline-overview.png)
 
 ## Workflow Files
 
@@ -70,34 +43,7 @@ on:
 
 ### Job: `lobechat-checks`
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    CI Workflow Steps                     │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  1. Clone LobeChat ─────────────────────────────────────│
-│     │  git clone --depth 1 lobehub/lobe-chat            │
-│     │  (Shallow clone for speed)                        │
-│     ▼                                                    │
-│  2. Setup pnpm ─────────────────────────────────────────│
-│     │  Install pnpm v10 package manager                 │
-│     ▼                                                    │
-│  3. Setup Node.js ──────────────────────────────────────│
-│     │  Install Node.js v20                              │
-│     ▼                                                    │
-│  4. Install Dependencies ───────────────────────────────│
-│     │  pnpm install                                     │
-│     ▼                                                    │
-│  5. Type Check ─────────────────────────────────────────│
-│     │  pnpm type-check                                  │
-│     │  Validates TypeScript types                       │
-│     ▼                                                    │
-│  6. Lint TypeScript ────────────────────────────────────│
-│        pnpm lint:ts                                     │
-│        Checks code style and potential errors           │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
-```
+![CI Workflow Steps](ci-workflow-steps.png)
 
 ### Configuration Details
 
@@ -128,27 +74,7 @@ on:
 
 ### Job: `commitlint`
 
-```
-┌─────────────────────────────────────────────────────────┐
-│               Commit Lint Workflow Steps                 │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  1. Checkout Repository ────────────────────────────────│
-│     │  fetch-depth: 0 (full history for commit range)   │
-│     ▼                                                    │
-│  2. Setup Node.js ──────────────────────────────────────│
-│     │  Install Node.js v20                              │
-│     ▼                                                    │
-│  3. Install commitlint ─────────────────────────────────│
-│     │  npm install -g @commitlint/cli                   │
-│     │  npm install -g @commitlint/config-conventional   │
-│     ▼                                                    │
-│  4. Validate Commits ───────────────────────────────────│
-│        commitlint --from <base> --to <head>             │
-│        Checks all commits in the PR                     │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
-```
+![Commit Lint Workflow Steps](commitlint-workflow-steps.png)
 
 ### Conventional Commit Format
 
@@ -209,12 +135,7 @@ on:
 
 ### Job Dependencies
 
-```
-┌─────────────┐         ┌─────────────┐
-│  CI Checks  │────────▶│   Release   │
-│    Job      │  needs  │    Job      │
-└─────────────┘         └─────────────┘
-```
+![Job Dependencies](job-dependencies.png)
 
 The `release` job has `needs: ci`, meaning:
 - CI must complete successfully before release runs
@@ -232,32 +153,7 @@ Runs the same checks as `ci.yml`:
 
 ### Job 2: `release` (Create Release)
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                 Release Workflow Steps                   │
-├─────────────────────────────────────────────────────────┤
-│                                                          │
-│  1. Checkout Repository ────────────────────────────────│
-│     │  fetch-depth: 0 (full history for changelog)      │
-│     ▼                                                    │
-│  2. Get Previous Tag ───────────────────────────────────│
-│     │  git describe --tags --abbrev=0 HEAD^             │
-│     │  Used for changelog generation                    │
-│     ▼                                                    │
-│  3. Generate Release Notes ─────────────────────────────│
-│     │  git log <prev_tag>..<new_tag>                    │
-│     │  Creates "What's Changed" section                 │
-│     ▼                                                    │
-│  4. Create Source Archives ─────────────────────────────│
-│     │  git archive --format=zip                         │
-│     │  git archive --format=tar.gz                      │
-│     ▼                                                    │
-│  5. Create GitHub Release ──────────────────────────────│
-│        Uses softprops/action-gh-release                 │
-│        Attaches archives and release notes              │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
-```
+![Release Workflow Steps](release-workflow-steps.png)
 
 ### Release Artifacts
 
@@ -277,35 +173,7 @@ permissions:
 
 ## Workflow Interaction Diagram
 
-```
-                    ┌─────────────────────────────────────────┐
-                    │             GitHub Events                │
-                    └─────────────────────────────────────────┘
-                                       │
-           ┌───────────────────────────┼───────────────────────────┐
-           │                           │                           │
-           ▼                           ▼                           ▼
-   ┌───────────────┐          ┌───────────────┐          ┌───────────────┐
-   │ Push to v2.x  │          │  PR to v2.x   │          │  Tag v*.*.*   │
-   └───────┬───────┘          └───────┬───────┘          └───────┬───────┘
-           │                          │                           │
-           ▼                          │                           ▼
-   ┌───────────────┐                  │                  ┌───────────────┐
-   │   ci.yml      │                  │                  │  release.yml  │
-   │               │                  │                  │               │
-   │ ┌───────────┐ │                  ▼                  │ ┌───────────┐ │
-   │ │  CI Job   │ │          ┌─────────────┐            │ │  CI Job   │ │
-   │ │  - type   │ │          │ ci.yml      │            │ │ (gates    │ │
-   │ │  - lint   │ │          │ commitlint  │            │ │  release) │ │
-   │ └───────────┘ │          │ .yml        │            │ └─────┬─────┘ │
-   │               │          │             │            │       │       │
-   └───────────────┘          │ ┌─────────┐ │            │       ▼       │
-                              │ │commitlnt│ │            │ ┌───────────┐ │
-                              │ └─────────┘ │            │ │ Release   │ │
-                              └─────────────┘            │ │  Job      │ │
-                                                         │ └───────────┘ │
-                                                         └───────────────┘
-```
+![Workflow Interaction](workflow-interaction.png)
 
 ---
 
@@ -342,12 +210,7 @@ git push origin v2.2.0
 
 ### If CI Fails
 
-```
-┌─────────────┐         ┌─────────────┐
-│  CI Checks  │────X────│   Release   │
-│   FAILED    │         │  SKIPPED    │
-└─────────────┘         └─────────────┘
-```
+![CI Fails - Release Skipped](ci-fails.png)
 
 - Release job is **skipped**
 - No release is created
