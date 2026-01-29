@@ -1,0 +1,365 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: LobeChat Infrastructure - VPC, EC2 with PostgreSQL, MinIO, and LobeChat
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: c7a.2xlarge
+    Description: EC2 instance type (needs 8 vCPU, 16GB RAM for build)
+    AllowedValues:
+      - c7a.2xlarge
+      - c7a.xlarge
+      - t3.2xlarge
+      - m7a.2xlarge
+
+  KeyPairName:
+    Type: String
+    Default: lobechat-key
+    Description: Name of the SSH key pair for EC2 access
+
+  VolumeSize:
+    Type: Number
+    Default: 20
+    Description: EBS volume size in GB
+    MinValue: 20
+    MaxValue: 100
+
+  DBPassword:
+    Type: String
+    Default: lobechat-db-password
+    NoEcho: true
+    Description: PostgreSQL database password
+
+  MinIOPassword:
+    Type: String
+    Default: lobechat-minio-secret
+    NoEcho: true
+    MinLength: 8
+    Description: MinIO root password
+
+Mappings:
+  RegionAMI:
+    eu-west-1:
+      AMI: ami-03446a3af42c5e74e  # Ubuntu 24.04 LTS (2025-12)
+    us-east-1:
+      AMI: ami-0c7217cdde317cfec  # Ubuntu 24.04 LTS
+    us-west-2:
+      AMI: ami-0cf2b4e024cdb6960  # Ubuntu 24.04 LTS
+
+Resources:
+  # VPC and Networking
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: lobechat-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: lobechat-igw
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: lobechat-public-subnet
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: lobechat-rtb
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+
+  # Security Group
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: lobechat-sg
+      GroupDescription: LobeChat security group - SSH, LobeChat, MinIO
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access
+        - IpProtocol: tcp
+          FromPort: 3210
+          ToPort: 3210
+          CidrIp: 0.0.0.0/0
+          Description: LobeChat web interface
+        - IpProtocol: tcp
+          FromPort: 9000
+          ToPort: 9000
+          CidrIp: 0.0.0.0/0
+          Description: MinIO S3 API
+        - IpProtocol: tcp
+          FromPort: 9001
+          ToPort: 9001
+          CidrIp: 0.0.0.0/0
+          Description: MinIO Console
+      Tags:
+        - Key: Name
+          Value: lobechat-sg
+
+  # EC2 Instance
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !FindInMap [RegionAMI, !Ref 'AWS::Region', AMI]
+      KeyName: !Ref KeyPairName
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: !Ref VolumeSize
+            VolumeType: gp3
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: lobechat-server
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec > >(tee /var/log/user-data.log) 2>&1
+          echo "Starting LobeChat installation..."
+
+          # Update system
+          apt update && apt upgrade -y
+
+          # Install PostgreSQL 16 with pgvector
+          echo "Installing PostgreSQL 16..."
+          sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+          apt update
+          apt install -y postgresql-16 postgresql-contrib-16 postgresql-16-pgvector
+
+          systemctl enable postgresql
+          systemctl start postgresql
+
+          # Configure PostgreSQL
+          sudo -u postgres psql << 'EOSQL'
+          ALTER USER postgres WITH PASSWORD '${DBPassword}';
+          CREATE DATABASE lobechat;
+          \c lobechat
+          CREATE EXTENSION IF NOT EXISTS vector;
+          EOSQL
+
+          # Install MinIO
+          echo "Installing MinIO..."
+          cd /tmp
+          wget -q https://dl.min.io/server/minio/release/linux-amd64/minio
+          chmod +x minio
+          mv minio /usr/local/bin/
+
+          mkdir -p /opt/minio/data
+          chown -R ubuntu:ubuntu /opt/minio
+
+          cat > /etc/systemd/system/minio.service << 'EOMINIO'
+          [Unit]
+          Description=MinIO Object Storage
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=ubuntu
+          Environment="MINIO_ROOT_USER=lobechat"
+          Environment="MINIO_ROOT_PASSWORD=${MinIOPassword}"
+          ExecStart=/usr/local/bin/minio server /opt/minio/data --console-address ":9001" --address ":9000"
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+          EOMINIO
+
+          systemctl daemon-reload
+          systemctl enable minio
+          systemctl start minio
+
+          # Install MinIO client and create bucket
+          wget -q https://dl.min.io/client/mc/release/linux-amd64/mc
+          chmod +x mc
+          mv mc /usr/local/bin/
+          sleep 5  # Wait for MinIO to start
+          mc alias set local http://localhost:9000 lobechat ${MinIOPassword}
+          mc mb local/lobechat --ignore-existing
+          mc anonymous set download local/lobechat
+
+          # Install Node.js 20
+          echo "Installing Node.js 20..."
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt install -y nodejs
+
+          # Install build tools and pnpm
+          apt install -y git build-essential unzip
+          npm install -g pnpm
+
+          # Install bun for database migrations
+          sudo -u ubuntu bash -c 'curl -fsSL https://bun.sh/install | bash'
+
+          # Clone LobeChat
+          echo "Cloning LobeChat..."
+          mkdir -p /opt/lobechat
+          chown ubuntu:ubuntu /opt/lobechat
+          cd /opt/lobechat
+          sudo -u ubuntu git clone --depth 1 https://github.com/lobehub/lobe-chat.git .
+
+          # Get public IP
+          TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+          PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
+
+          # Generate secrets
+          AUTH_SECRET=$(openssl rand -base64 32)
+          KEY_VAULTS_SECRET=$(openssl rand -base64 32)
+
+          # Create environment file
+          cat > /opt/lobechat/.env << EOENV
+          APP_URL=http://$PUBLIC_IP:3210
+          DATABASE_URL=postgresql://postgres:${DBPassword}@localhost:5432/lobechat
+          DATABASE_DRIVER=node
+          AUTH_SECRET=$AUTH_SECRET
+          AUTH_TRUST_HOST=true
+          KEY_VAULTS_SECRET=$KEY_VAULTS_SECRET
+          SECURE_COOKIES=false
+          S3_ACCESS_KEY_ID=lobechat
+          S3_SECRET_ACCESS_KEY=${MinIOPassword}
+          S3_ENDPOINT=http://$PUBLIC_IP:9000
+          S3_BUCKET=lobechat
+          S3_PUBLIC_DOMAIN=http://$PUBLIC_IP:9000
+          S3_ENABLE_PATH_STYLE=1
+          S3_SET_ACL=0
+          EOENV
+
+          # Generate JWKS key
+          cd /opt/lobechat
+          JWKS_KEY=$(sudo -u ubuntu node scripts/generate-oidc-jwk.mjs 2>/dev/null || echo "")
+          if [ -n "$JWKS_KEY" ]; then
+            echo "" >> .env
+            echo "JWKS_KEY='$JWKS_KEY'" >> .env
+          fi
+
+          cp /opt/lobechat/.env /opt/lobechat/.env.local
+          chown ubuntu:ubuntu /opt/lobechat/.env /opt/lobechat/.env.local
+
+          # Install dependencies
+          echo "Installing dependencies..."
+          cd /opt/lobechat
+          sudo -u ubuntu pnpm install
+
+          # Build LobeChat
+          echo "Building LobeChat (this takes 5-6 minutes)..."
+          sudo -u ubuntu pnpm run build
+
+          # Run database migrations
+          echo "Running database migrations..."
+          sudo -u ubuntu bash -c 'source ~/.bun/env && cd /opt/lobechat && source .env.local && MIGRATION_DB=1 bun run ./scripts/migrateServerDB/index.ts'
+
+          # Create LobeChat service
+          cat > /etc/systemd/system/lobechat.service << 'EOLOBECHAT'
+          [Unit]
+          Description=LobeChat Application
+          After=network.target postgresql.service
+
+          [Service]
+          Type=simple
+          User=ubuntu
+          WorkingDirectory=/opt/lobechat
+          EnvironmentFile=/opt/lobechat/.env.local
+          Environment=NODE_ENV=production
+          Environment=PORT=3210
+          ExecStart=/usr/bin/pnpm start
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+          EOLOBECHAT
+
+          systemctl daemon-reload
+          systemctl enable lobechat
+          systemctl start lobechat
+
+          echo "LobeChat installation complete!"
+          echo "Access LobeChat at: http://$PUBLIC_IP:3210"
+
+Outputs:
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${AWS::StackName}-VPCId'
+
+  PublicSubnetId:
+    Description: Public Subnet ID
+    Value: !Ref PublicSubnet
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicSubnetId'
+
+  SecurityGroupId:
+    Description: Security Group ID
+    Value: !Ref SecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityGroupId'
+
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref EC2Instance
+    Export:
+      Name: !Sub '${AWS::StackName}-InstanceId'
+
+  PublicIP:
+    Description: Public IP address of the EC2 instance
+    Value: !GetAtt EC2Instance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-PublicIP'
+
+  LobeChatURL:
+    Description: LobeChat application URL
+    Value: !Sub 'http://${EC2Instance.PublicIp}:3210'
+
+  MinIOConsoleURL:
+    Description: MinIO Console URL
+    Value: !Sub 'http://${EC2Instance.PublicIp}:9001'
+
+  SSHCommand:
+    Description: SSH command to connect to the instance
+    Value: !Sub 'ssh -i ~/.ssh/${KeyPairName}.pem ubuntu@${EC2Instance.PublicIp}'

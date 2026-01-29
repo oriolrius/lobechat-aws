@@ -2,7 +2,7 @@ name: Commit Lint
 
 on:
   pull_request:
-    branches: [v2.x]
+    branches: [v2.x, v3.x]
 
 jobs:
   commitlint:
