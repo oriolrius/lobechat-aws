@@ -8,7 +8,9 @@ This guide is designed for **ESADE students** using the Innovation Sandbox on AW
 - AWS CLI installed locally (`brew install awscli` or `apt install awscli`)
 - SSH client
 
-> **Instance Size**: This guide uses **t3a.medium** (2 vCPU, 4GB RAM, ~$0.04/hour). The Next.js build requires at least 4GB RAM. For faster builds, consider **c6a.2xlarge** (8 vCPU, 16GB RAM, ~$0.31/hour).
+> **Instance Size**: This guide uses **c7a.2xlarge** (8 vCPU, 16GB RAM, AMD EPYC 4th Gen, ~$0.35/hour). The Next.js build is resource-intensive and requires sufficient CPU/RAM to avoid timeouts.
+
+> **Total Time**: ~16 minutes (Steps 1-4: ~2 min local, Steps 5-9: ~14 min on EC2)
 
 ---
 
@@ -68,6 +70,7 @@ echo "Route Table: $RTB_ID"
 SG_ID=$(aws ec2 create-security-group --group-name lobechat-sg --description "LobeChat security group" --vpc-id $VPC_ID --query 'GroupId' --output text)
 aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 22 --cidr 0.0.0.0/0
 aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 3210 --cidr 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 9000 --cidr 0.0.0.0/0
 echo "Security Group: $SG_ID"
 ```
 
@@ -105,10 +108,10 @@ AMI_ID=$(aws ec2 describe-images --owners 099720109477 \
   --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' --output text)
 echo "AMI: $AMI_ID"
 
-# Launch instance (t3a.medium: 2 vCPU, 4GB RAM - required for building LobeChat)
+# Launch instance (c7a.2xlarge: 8 vCPU, 16GB RAM AMD EPYC 4th Gen)
 INSTANCE_ID=$(aws ec2 run-instances \
   --image-id $AMI_ID \
-  --instance-type t3a.medium \
+  --instance-type c7a.2xlarge \
   --key-name lobechat-key \
   --security-group-ids $SG_ID \
   --subnet-id $SUBNET_ID \
@@ -144,6 +147,8 @@ ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP
 
 ## Step 5: Install PostgreSQL 16 with pgvector
 
+> **Timing**: ~2 minutes
+
 Run these commands on the EC2 instance:
 
 ```bash
@@ -177,7 +182,60 @@ EOF
 
 ---
 
-## Step 6: Install Node.js 20
+## Step 6: Install MinIO (S3 Storage)
+
+> **Timing**: ~1 minute
+
+LobeChat requires S3-compatible storage for file uploads. Install MinIO:
+
+```bash
+# Download and install MinIO
+cd /tmp
+wget -q https://dl.min.io/server/minio/release/linux-amd64/minio
+chmod +x minio
+sudo mv minio /usr/local/bin/
+
+# Create data directory
+sudo mkdir -p /opt/minio/data
+sudo chown -R ubuntu:ubuntu /opt/minio
+
+# Create systemd service
+sudo tee /etc/systemd/system/minio.service << 'EOF'
+[Unit]
+Description=MinIO Object Storage
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Environment="MINIO_ROOT_USER=lobechat"
+Environment="MINIO_ROOT_PASSWORD=lobechat-minio-secret"
+ExecStart=/usr/local/bin/minio server /opt/minio/data --console-address ":9001" --address ":9000"
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable minio
+sudo systemctl start minio
+
+# Install MinIO client and create bucket
+wget -q https://dl.min.io/client/mc/release/linux-amd64/mc
+chmod +x mc
+sudo mv mc /usr/local/bin/
+mc alias set local http://localhost:9000 lobechat lobechat-minio-secret
+mc mb local/lobechat --ignore-existing
+mc anonymous set download local/lobechat
+```
+
+---
+
+## Step 7: Install Node.js 20
+
+> **Timing**: ~30 seconds
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -187,10 +245,12 @@ node --version  # Should show v20.x.x
 
 ---
 
-## Step 7: Install LobeChat
+## Step 8: Install LobeChat
+
+### Install prerequisites (~1 minute)
 
 ```bash
-# Install git, build tools, and unzip (needed for bun)
+# Install git, build tools, and unzip
 sudo apt install -y git build-essential unzip
 
 # Install pnpm (LobeChat uses pnpm workspaces)
@@ -200,19 +260,20 @@ sudo npm install -g pnpm
 curl -fsSL https://bun.sh/install | bash
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+```
 
-# Clone and build LobeChat
+### Clone LobeChat (~10 seconds)
+
+```bash
 sudo mkdir -p /opt/lobechat
 sudo chown ubuntu:ubuntu /opt/lobechat
 cd /opt/lobechat
 git clone --depth 1 https://github.com/lobehub/lobe-chat.git .
-pnpm install
-pnpm run build
 ```
 
-> **Note**: The build requires ~4GB RAM (t3a.medium or larger). On smaller instances, the build will fail with out-of-memory errors.
+### Configure environment (before build!)
 
-### Configure LobeChat
+The build requires environment variables. Configure them first. **Important**: Create `.env` (not `.env.local`) as the build script reads from `.env`:
 
 ```bash
 # Get public IP
@@ -221,43 +282,75 @@ PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254
 echo "Server IP: $PUBLIC_IP"
 
 # Generate secrets
-NEXT_AUTH_SECRET=$(openssl rand -base64 32)
+AUTH_SECRET=$(openssl rand -base64 32)
 KEY_VAULTS_SECRET=$(openssl rand -base64 32)
-BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 
-cat > /opt/lobechat/.env.local << EOF
+cat > /opt/lobechat/.env << EOF
 # App URL
 APP_URL=http://$PUBLIC_IP:3210
-NEXTAUTH_URL=http://$PUBLIC_IP:3210
-AUTH_URL=http://$PUBLIC_IP:3210
 
-# Database (use node driver for local PostgreSQL)
+# Database
 DATABASE_URL=postgresql://postgres:lobechat-db-password@localhost:5432/lobechat
 DATABASE_DRIVER=node
 
-# Authentication
-NEXT_AUTH_SECRET=$NEXT_AUTH_SECRET
-BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+# Authentication (Better-Auth)
+AUTH_SECRET=$AUTH_SECRET
 AUTH_TRUST_HOST=true
 
 # Security
 KEY_VAULTS_SECRET=$KEY_VAULTS_SECRET
+
+# Cookie settings for HTTP (non-HTTPS)
+SECURE_COOKIES=false
+
+# S3/MinIO Storage
+S3_ACCESS_KEY_ID=lobechat
+S3_SECRET_ACCESS_KEY=lobechat-minio-secret
+S3_ENDPOINT=http://$PUBLIC_IP:9000
+S3_BUCKET=lobechat
+S3_PUBLIC_DOMAIN=http://$PUBLIC_IP:9000
+S3_ENABLE_PATH_STYLE=1
+S3_SET_ACL=0
 
 # Optional: OpenRouter for AI models
 # OPENROUTER_API_KEY=sk-or-v1-your-key
 # ENABLED_OPENROUTER=1
 EOF
 
+# Generate JWKS key for internal JWT operations
+cd /opt/lobechat
+JWKS_KEY=$(node scripts/generate-oidc-jwk.mjs 2>/dev/null)
+echo "" >> .env
+echo "# OIDC/JWT Key" >> .env
+echo "JWKS_KEY='$JWKS_KEY'" >> .env
+
+# Also create .env.local for runtime (systemd uses this)
+cp /opt/lobechat/.env /opt/lobechat/.env.local
+
 # Save public IP for later
 echo "PUBLIC_IP=$PUBLIC_IP" > ~/.lobechat_config
 ```
+
+### Install dependencies (~1.5 minutes)
+
+```bash
+cd /opt/lobechat
+pnpm install
+```
+
+### Build LobeChat (~5-6 minutes)
+
+```bash
+cd /opt/lobechat
+pnpm run build
+```
+
+> **Note**: The build is CPU and memory intensive. On c7a.2xlarge (8 vCPU, 16GB RAM) it completes in ~5-6 minutes. Smaller instances may experience SSH timeouts during build.
 
 ### Run database migrations
 
 ```bash
 cd /opt/lobechat
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
 source .env.local
 MIGRATION_DB=1 bun run ./scripts/migrateServerDB/index.ts
 ```
@@ -292,11 +385,12 @@ sudo systemctl start lobechat
 
 ---
 
-## Step 8: Verify Installation
+## Step 9: Verify Installation
 
 ```bash
 # Check all services
 sudo systemctl status postgresql --no-pager
+sudo systemctl status minio --no-pager
 sudo systemctl status lobechat --no-pager
 
 # Get URL
@@ -305,7 +399,8 @@ echo ""
 echo "============================================"
 echo "Installation Complete!"
 echo "============================================"
-echo "LobeChat:  http://$PUBLIC_IP:3210"
+echo "LobeChat:       http://$PUBLIC_IP:3210"
+echo "MinIO Console:  http://$PUBLIC_IP:9001"
 echo "============================================"
 ```
 

@@ -4,116 +4,106 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LobeChat Local Stack - A self-hosted AI chat platform with PostgreSQL, Casdoor SSO, MinIO storage, vLLM inference, and MCP server integrations. Version managed with Commitizen (currently v0.5.2).
+LobeChat AWS Deployment - Installation guide and configuration for deploying LobeChat on AWS EC2 for ESADE students using the Innovation Sandbox.
 
-## Common Commands
+## Repository Structure
 
-### Docker Stack
-```bash
-docker compose up -d              # Start entire stack
-docker compose down               # Stop stack
-docker compose logs -f lobe-chat  # View LobeChat logs
-docker compose restart <service>  # Restart specific service
+```
+.
+├── INSTALLATION.md    # Step-by-step EC2 deployment guide
+├── README.md          # Project overview
+├── CLAUDE.md          # This file - Claude Code guidance
+├── .env.example       # Environment variable template
+├── .githooks/         # Git commit validation hooks
+└── .gitignore         # Git ignore patterns
 ```
 
-### Testing
-```bash
-uv run --group test pytest tests/ -v                    # Run all tests
-uv run --group test pytest tests/test_vllm.py -v        # Run single test file
-uv run --group test pytest tests/test_vllm.py::test_health -v  # Run single test
+## Key Files
+
+- `INSTALLATION.md`: Complete guide for deploying LobeChat on AWS EC2 with:
+  - VPC/networking setup
+  - EC2 instance provisioning (c7a.2xlarge)
+  - PostgreSQL 16 with pgvector
+  - MinIO for S3-compatible storage
+  - Node.js 20 and pnpm
+  - LobeChat build and configuration
+  - systemd service setup
+
+- `.env.example`: Template for environment variables including:
+  - Database connection (PostgreSQL)
+  - Authentication (AUTH_SECRET, JWKS_KEY)
+  - S3/MinIO storage configuration
+  - Optional AI provider API keys
+
+## EC2 Deployment Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    EC2 Instance                      │
+│                   (c7a.2xlarge)                      │
+│                                                      │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
+│  │  LobeChat   │  │ PostgreSQL  │  │   MinIO     │  │
+│  │   :3210     │  │   :5432     │  │   :9000     │  │
+│  │  (Next.js)  │  │  (pgvector) │  │ (S3 storage)│  │
+│  └─────────────┘  └─────────────┘  └─────────────┘  │
+│                                                      │
+└─────────────────────────────────────────────────────┘
 ```
 
-### Database Migrations (dbmate)
+## Common Operations
+
+### On EC2 Instance
+
 ```bash
-# First time setup: download dbmate binary and install postgresql-client-16
-mkdir -p contrib && curl -fsSL https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64 -o contrib/dbmate && chmod +x contrib/dbmate
-sudo apt-get install -y postgresql-client-16
+# View LobeChat logs
+sudo journalctl -u lobechat -f
 
-# Create new migration
-./db/migrate new create_users
+# Restart services
+sudo systemctl restart lobechat
+sudo systemctl restart minio
+sudo systemctl restart postgresql
 
-# Run pending migrations
-./db/migrate up
-
-# Rollback last migration
-./db/migrate rollback
-
-# Check migration status
-./db/migrate status
-
-# Dump current schema to db/schema.sql
-./db/migrate dump
-
-# Dump current data to db/seed.sql
-./db/migrate dump-seed
-
-# Recreate database from schema + seed + migrations
-./db/migrate drop      # Drop existing database
-./db/migrate load      # Load db/schema.sql
-./db/migrate load-seed # Load db/seed.sql
-./db/migrate up        # Apply any pending migrations
+# Check service status
+sudo systemctl status lobechat minio postgresql
 ```
 
-Migrations are stored in `db/migrations/` as plain SQL with `-- migrate:up` and `-- migrate:down` sections. The `db/schema.sql` is the schema snapshot and `db/seed.sql` contains initial data for rebuilding the database from scratch.
+### From Local Machine
 
-### Git & Versioning
 ```bash
-git config core.hooksPath .githooks  # Enable commit validation hook
-cz commit                            # Interactive conventional commit
-cz bump                              # Bump version based on commits
-cz changelog                         # Generate CHANGELOG.md
+# Load saved AWS config
+source ~/.lobechat_aws
+
+# SSH to instance
+ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP
+
+# Stop instance (saves money)
+aws ec2 stop-instances --instance-ids $INSTANCE_ID
+
+# Start instance (note: IP changes!)
+aws ec2 start-instances --instance-ids $INSTANCE_ID
 ```
-
-Commit format: `type(scope)?: description` where type is feat/fix/docs/style/refactor/test/build/ci/chore. Breaking changes use `!` suffix (e.g., `feat!:`).
-
-## Architecture
-
-**Services (docker-compose.yml):**
-- **lobe-chat** (47000): Next.js chat application with database backend
-- **casdoor** (47002): SSO authentication provider
-- **mcphub** (47008): MCP server hub routing to 7 MCP servers
-- **vllm** (47007): Local GPU-based LLM inference (Gemma 3 270M)
-- **minio** (47005/47006): S3-compatible object storage
-- **postgres** (internal): pgvector database shared by all services
-
-**MCP Servers via MCPHub:**
-- ssh-exec: SSH command execution (whitelisted commands only)
-- aws-resources-operations: AWS boto3 operations
-- aws-documentation: AWS docs search
-- playwright: Browser automation & screenshots
-- pickstar-2002-minio-mcp: MinIO S3 operations
-- notion-mcp: Notion database integration
-- filesystem: Local file access
-
-**Data Flow:** LobeChat → Casdoor (auth) → PostgreSQL (data) → MinIO (files) → MCPHub (tools) → vLLM/OpenRouter (inference)
-
-## Key Configuration Files
-
-- `config/mcp_settings.json`: MCPHub server configuration with security restrictions
-- `config/init_data.json`: Casdoor SSO initial data
-- `config/init-postgres.sql`: Database initialization (creates lobechat, casdoor DBs)
-- `db/migrate`: Database migration wrapper script (uses dbmate)
-- `db/schema.sql`: Database schema snapshot (for recreating DB)
-- `db/seed.sql`: Database seed data (for recreating DB)
-- `db/migrations/`: Incremental SQL migration files
-- `patches/route.js`: LobeChat hotfix for MCP session retry logic
-- `.env.example`: Environment variable template
-
-## Environment Setup
-
-1. `cp .env.example .env` and configure secrets (min 32 chars for KEY_VAULTS_SECRET, NEXT_AUTH_SECRET)
-2. Set HF_TOKEN for vLLM model downloads
-3. Set OPENROUTER_API_KEY for external LLM/embeddings
-4. AWS credentials auto-mounted from `~/.aws`
 
 ## Port Reference
 
-| Port  | Service        |
-|-------|----------------|
-| 47000 | LobeChat       |
-| 47002 | Casdoor        |
-| 47003 | PostgreSQL     |
-| 47005 | MinIO API      |
-| 47006 | MinIO Console  |
-| 47007 | vLLM           |
-| 47008 | MCPHub         |
+| Port | Service       |
+|------|---------------|
+| 22   | SSH           |
+| 3210 | LobeChat      |
+| 5432 | PostgreSQL    |
+| 9000 | MinIO API     |
+| 9001 | MinIO Console |
+
+## Environment Variables
+
+Key environment variables for LobeChat (configured in `/opt/lobechat/.env`):
+
+| Variable | Description |
+|----------|-------------|
+| `APP_URL` | Public URL of the application |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `AUTH_SECRET` | Authentication secret (32+ chars) |
+| `KEY_VAULTS_SECRET` | Encryption key for vaults |
+| `JWKS_KEY` | JWT signing key (generated) |
+| `S3_ENDPOINT` | MinIO endpoint (public IP) |
+| `S3_BUCKET` | MinIO bucket name |
