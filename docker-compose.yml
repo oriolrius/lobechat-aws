@@ -151,9 +151,8 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: shared-postgres
-    # Uncomment if you need external access
-    # ports:
-    #   - "47003:5432"
+    ports:
+      - "${POSTGRES_PORT:-47003}:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}

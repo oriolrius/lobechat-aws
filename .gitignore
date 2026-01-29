@@ -1,6 +1,9 @@
 # Data directories (contain runtime data)
 data/
 
+# Downloaded binaries
+contrib/
+
 # Environment files with secrets
 .env
 

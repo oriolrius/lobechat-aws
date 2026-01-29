@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Use PostgreSQL 16 client tools
+export PATH="/usr/lib/postgresql/16/bin:$PATH"
+
+# Load .env if present
+if [[ -f "$ROOT_DIR/.env" ]]; then
+    set -a
+    source "$ROOT_DIR/.env"
+    set +a
+fi
+
+DB_HOST="${POSTGRES_HOST:-localhost}"
+DB_PORT="${POSTGRES_PORT:-47003}"
+DB_USER="${POSTGRES_USER:-postgres}"
+DB_PASS="${POSTGRES_PASSWORD:-postgres}"
+DB_NAME="${DBMATE_DATABASE:-lobechat}"
+
+export DATABASE_URL="${DATABASE_URL:-postgres://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable}"
+export DBMATE_MIGRATIONS_DIR="$SCRIPT_DIR/migrations"
+export DBMATE_SCHEMA_FILE="$SCRIPT_DIR/schema.sql"
+export PGPASSWORD="$DB_PASS"
+
+case "${1:-}" in
+    load-seed)
+        # Load seed data with triggers disabled (handles circular foreign keys)
+        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+            -c "SET session_replication_role = 'replica';" \
+            -f "$SCRIPT_DIR/seed.sql" \
+            -c "SET session_replication_role = 'origin';"
+        echo "Seed data loaded into $DB_NAME"
+        ;;
+    dump-seed)
+        # Dump data only for seeding
+        pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" \
+            --data-only --inserts --no-owner --no-privileges \
+            "$DB_NAME" > "$SCRIPT_DIR/seed.sql"
+        echo "Seed data written to $SCRIPT_DIR/seed.sql"
+        ;;
+    *)
+        exec "$ROOT_DIR/contrib/dbmate" "$@"
+        ;;
+esac

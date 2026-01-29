@@ -23,6 +23,39 @@ uv run --group test pytest tests/test_vllm.py -v        # Run single test file
 uv run --group test pytest tests/test_vllm.py::test_health -v  # Run single test
 ```
 
+### Database Migrations (dbmate)
+```bash
+# First time setup: download dbmate binary and install postgresql-client-16
+mkdir -p contrib && curl -fsSL https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64 -o contrib/dbmate && chmod +x contrib/dbmate
+sudo apt-get install -y postgresql-client-16
+
+# Create new migration
+./db/migrate new create_users
+
+# Run pending migrations
+./db/migrate up
+
+# Rollback last migration
+./db/migrate rollback
+
+# Check migration status
+./db/migrate status
+
+# Dump current schema to db/schema.sql
+./db/migrate dump
+
+# Dump current data to db/seed.sql
+./db/migrate dump-seed
+
+# Recreate database from schema + seed + migrations
+./db/migrate drop      # Drop existing database
+./db/migrate load      # Load db/schema.sql
+./db/migrate load-seed # Load db/seed.sql
+./db/migrate up        # Apply any pending migrations
+```
+
+Migrations are stored in `db/migrations/` as plain SQL with `-- migrate:up` and `-- migrate:down` sections. The `db/schema.sql` is the schema snapshot and `db/seed.sql` contains initial data for rebuilding the database from scratch.
+
 ### Git & Versioning
 ```bash
 git config core.hooksPath .githooks  # Enable commit validation hook
@@ -58,7 +91,11 @@ Commit format: `type(scope)?: description` where type is feat/fix/docs/style/ref
 
 - `config/mcp_settings.json`: MCPHub server configuration with security restrictions
 - `config/init_data.json`: Casdoor SSO initial data
-- `config/init-postgres.sql`: Database initialization (creates litellm, lobechat, casdoor DBs)
+- `config/init-postgres.sql`: Database initialization (creates lobechat, casdoor DBs)
+- `db/migrate`: Database migration wrapper script (uses dbmate)
+- `db/schema.sql`: Database schema snapshot (for recreating DB)
+- `db/seed.sql`: Database seed data (for recreating DB)
+- `db/migrations/`: Incremental SQL migration files
 - `patches/route.js`: LobeChat hotfix for MCP session retry logic
 - `.env.example`: Environment variable template
 
@@ -75,6 +112,7 @@ Commit format: `type(scope)?: description` where type is feat/fix/docs/style/ref
 |-------|----------------|
 | 47000 | LobeChat       |
 | 47002 | Casdoor        |
+| 47003 | PostgreSQL     |
 | 47005 | MinIO API      |
 | 47006 | MinIO Console  |
 | 47007 | vLLM           |
