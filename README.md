@@ -35,7 +35,7 @@ Total deployment time: ~16 minutes
 
 ![LobeChat EC2 Architecture](docs/architecture.png)
 
-All services run on a single EC2 instance (Ubuntu 24.04).
+All services run on a single EC2 instance (Ubuntu 24.04). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed documentation.
 
 ## Requirements
 
