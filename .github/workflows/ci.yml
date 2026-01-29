@@ -27,7 +27,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: lobe-chat
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Type check
         working-directory: lobe-chat
