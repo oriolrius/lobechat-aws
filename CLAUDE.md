@@ -4,106 +4,78 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LobeChat AWS Deployment - Installation guide and configuration for deploying LobeChat on AWS EC2 for ESADE students using the Innovation Sandbox.
+GitHub Actions Practice - A hands-on exercise for ESADE students to learn CI/CD workflows, conventional commits, and pull request processes.
+
+> For EC2 deployment instructions, see branch `v1.x`.
 
 ## Repository Structure
 
 ```
 .
-├── INSTALLATION.md    # Step-by-step EC2 deployment guide
-├── README.md          # Project overview
-├── CLAUDE.md          # This file - Claude Code guidance
-├── .env.example       # Environment variable template
-├── .githooks/         # Git commit validation hooks
-└── .gitignore         # Git ignore patterns
+├── .github/workflows/
+│   ├── ci.yml           # Lint and type checks on push/PR
+│   ├── commitlint.yml   # Validates conventional commit messages
+│   └── release.yml      # Auto-creates releases on version tags
+├── README.md            # Quick start and solution steps
+├── HOMEWORK.md          # Student exercise instructions
+├── CONTRIBUTING.md      # Contribution guidelines
+├── CLAUDE.md            # This file
+└── .gitignore
 ```
 
-## Key Files
+## GitHub Actions Workflows
 
-- `INSTALLATION.md`: Complete guide for deploying LobeChat on AWS EC2 with:
-  - VPC/networking setup
-  - EC2 instance provisioning (c7a.2xlarge)
-  - PostgreSQL 16 with pgvector
-  - MinIO for S3-compatible storage
-  - Node.js 20 and pnpm
-  - LobeChat build and configuration
-  - systemd service setup
+| Workflow | File | Trigger | Purpose |
+|----------|------|---------|---------|
+| CI | `ci.yml` | Push/PR to v2.x | Clones LobeChat, runs type-check and lint |
+| Commit Lint | `commitlint.yml` | PR to v2.x | Validates commit messages follow conventional format |
+| Release | `release.yml` | Tag `v*.*.*` | Creates GitHub release with source archives |
 
-- `.env.example`: Template for environment variables including:
-  - Database connection (PostgreSQL)
-  - Authentication (AUTH_SECRET, JWKS_KEY)
-  - S3/MinIO storage configuration
-  - Optional AI provider API keys
+## Conventional Commits
 
-## EC2 Deployment Architecture
+All commits must follow the [Conventional Commits](https://conventionalcommits.org) specification:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    EC2 Instance                      │
-│                   (c7a.2xlarge)                      │
-│                                                      │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
-│  │  LobeChat   │  │ PostgreSQL  │  │   MinIO     │  │
-│  │   :3210     │  │   :5432     │  │   :9000     │  │
-│  │  (Next.js)  │  │  (pgvector) │  │ (S3 storage)│  │
-│  └─────────────┘  └─────────────┘  └─────────────┘  │
-│                                                      │
-└─────────────────────────────────────────────────────┘
+<type>: <description>
 ```
+
+**Valid types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `ci`, `chore`
+
+**Examples**:
+```bash
+docs: add student-name to homework
+fix: correct typo in README
+feat: add new workflow
+ci: update Node.js version
+```
+
+## Homework Exercise
+
+Students practice the fork/PR workflow:
+
+1. Fork the repository
+2. Edit `HOMEWORK.md` - add name to the list
+3. Commit with `docs: add <name> to homework`
+4. Push and create PR to `v2.x`
+5. Verify CI workflows pass (green checkmarks)
 
 ## Common Operations
 
-### On EC2 Instance
-
 ```bash
-# View LobeChat logs
-sudo journalctl -u lobechat -f
+# Check commit message format locally
+npx commitlint --from HEAD~1 --to HEAD
 
-# Restart services
-sudo systemctl restart lobechat
-sudo systemctl restart minio
-sudo systemctl restart postgresql
+# View workflow runs (requires gh CLI)
+gh run list
 
-# Check service status
-sudo systemctl status lobechat minio postgresql
+# Create a release tag
+git tag -a v2.0.0 -m "Release v2.0.0"
+git push origin v2.0.0
 ```
 
-### From Local Machine
+## Branch Strategy
 
-```bash
-# Load saved AWS config
-source ~/.lobechat_aws
-
-# SSH to instance
-ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP
-
-# Stop instance (saves money)
-aws ec2 stop-instances --instance-ids $INSTANCE_ID
-
-# Start instance (note: IP changes!)
-aws ec2 start-instances --instance-ids $INSTANCE_ID
-```
-
-## Port Reference
-
-| Port | Service       |
-|------|---------------|
-| 22   | SSH           |
-| 3210 | LobeChat      |
-| 5432 | PostgreSQL    |
-| 9000 | MinIO API     |
-| 9001 | MinIO Console |
-
-## Environment Variables
-
-Key environment variables for LobeChat (configured in `/opt/lobechat/.env`):
-
-| Variable | Description |
-|----------|-------------|
-| `APP_URL` | Public URL of the application |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `AUTH_SECRET` | Authentication secret (32+ chars) |
-| `KEY_VAULTS_SECRET` | Encryption key for vaults |
-| `JWKS_KEY` | JWT signing key (generated) |
-| `S3_ENDPOINT` | MinIO endpoint (public IP) |
-| `S3_BUCKET` | MinIO bucket name |
+| Branch | Purpose |
+|--------|---------|
+| `v1.x` | EC2 deployment documentation |
+| `v2.x` | GitHub Actions practice (this branch) |
