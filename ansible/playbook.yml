@@ -126,25 +126,41 @@
         timeout: 60
 
     - name: Configure MinIO alias
+      become: true
       become_user: "{{ lobechat_user }}"
-      ansible.builtin.shell: |
-        mc alias set local http://localhost:9000 lobechat {{ minio_password }}
-      args:
+      ansible.builtin.command:
+        cmd: mc alias set local http://localhost:9000 lobechat {{ minio_password }}
         creates: "/home/{{ lobechat_user }}/.mc/config.json"
 
     - name: Create MinIO bucket
+      become: true
       become_user: "{{ lobechat_user }}"
-      ansible.builtin.shell: |
-        mc mb local/lobechat --ignore-existing
-        mc anonymous set download local/lobechat
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          mc mb local/lobechat --ignore-existing
+          mc anonymous set download local/lobechat
+        executable: /bin/bash
       changed_when: false
 
     # Node.js
+    - name: Ensure apt keyrings directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Add NodeSource apt key
+      ansible.builtin.get_url:
+        url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+        dest: /etc/apt/keyrings/nodesource.asc
+        mode: '0644'
+
     - name: Add NodeSource repository
-      ansible.builtin.shell: |
-        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-      args:
-        creates: /etc/apt/sources.list.d/nodesource.list
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_20.x nodistro main"
+        state: present
+        filename: nodesource
 
     - name: Install Node.js
       ansible.builtin.apt:
@@ -153,17 +169,22 @@
         update_cache: true
 
     - name: Install pnpm globally
-      community.general.npm:
-        name: pnpm
-        global: true
-        state: present
+      ansible.builtin.command:
+        cmd: npm install -g pnpm
+        creates: /usr/bin/pnpm
 
     # Bun
+    - name: Download bun installer
+      ansible.builtin.get_url:
+        url: https://bun.sh/install
+        dest: /tmp/bun-install.sh
+        mode: '0755'
+
     - name: Install bun
+      become: true
       become_user: "{{ lobechat_user }}"
-      ansible.builtin.shell: |
-        curl -fsSL https://bun.sh/install | bash
-      args:
+      ansible.builtin.command:
+        cmd: bash /tmp/bun-install.sh
         creates: "/home/{{ lobechat_user }}/.bun/bin/bun"
 
     - name: Create bun symlinks
@@ -186,10 +207,12 @@
         mode: '0755'
 
     - name: Clone LobeChat repository
+      become: true
       become_user: "{{ lobechat_user }}"
       ansible.builtin.git:
         repo: https://github.com/lobehub/lobe-chat.git
         dest: "{{ lobechat_dir }}"
+        version: main
         depth: 1
         force: true
 
@@ -211,23 +234,26 @@
       register: public_ip
 
     - name: Generate AUTH_SECRET
-      ansible.builtin.shell: openssl rand -base64 32
+      ansible.builtin.command:
+        cmd: openssl rand -base64 32
       register: auth_secret
       changed_when: false
 
     - name: Generate KEY_VAULTS_SECRET
-      ansible.builtin.shell: openssl rand -base64 32
+      ansible.builtin.command:
+        cmd: openssl rand -base64 32
       register: key_vaults_secret
       changed_when: false
 
     - name: Generate JWKS key
+      become: true
       become_user: "{{ lobechat_user }}"
-      ansible.builtin.shell: |
-        cd {{ lobechat_dir }}
-        node scripts/generate-oidc-jwk.mjs 2>/dev/null || echo ""
+      ansible.builtin.shell:
+        cmd: node scripts/generate-oidc-jwk.mjs 2>/dev/null || echo ""
+        chdir: "{{ lobechat_dir }}"
       register: jwks_key
       changed_when: false
-      ignore_errors: true
+      failed_when: false
 
     - name: Create LobeChat environment file
       ansible.builtin.copy:
@@ -264,26 +290,27 @@
         mode: '0600'
 
     - name: Install LobeChat dependencies
+      become: true
       become_user: "{{ lobechat_user }}"
-      ansible.builtin.shell: |
-        cd {{ lobechat_dir }}
-        pnpm install
-      args:
+      ansible.builtin.command:
+        cmd: pnpm install
+        chdir: "{{ lobechat_dir }}"
         creates: "{{ lobechat_dir }}/node_modules"
 
     - name: Build LobeChat
+      become: true
       become_user: "{{ lobechat_user }}"
-      ansible.builtin.shell: |
-        cd {{ lobechat_dir }}
-        pnpm run build
-      args:
+      ansible.builtin.command:
+        cmd: pnpm run build
+        chdir: "{{ lobechat_dir }}"
         creates: "{{ lobechat_dir }}/.next"
 
     - name: Run database migrations
+      become: true
       become_user: "{{ lobechat_user }}"
-      ansible.builtin.shell: |
-        cd {{ lobechat_dir }}
-        bun run db:migrate
+      ansible.builtin.command:
+        cmd: bun run db:migrate
+        chdir: "{{ lobechat_dir }}"
       changed_when: false
 
     - name: Create LobeChat systemd service
