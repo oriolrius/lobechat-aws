@@ -1,6 +1,6 @@
-# LobeChat AWS - Infrastructure as Code
+# LobeChat AWS - Docker Compose Deployment
 
-Deploy **LobeChat to AWS** using CloudFormation and Ansible.
+Deploy **LobeChat to AWS** using CloudFormation and Docker Compose with images from GHCR.
 
 ---
 
@@ -34,7 +34,6 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 - AWS account (ESADE Innovation Sandbox)
 - AWS CLI installed
-- [uv](https://docs.astral.sh/uv/) installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 
 ### Deploy
 
@@ -50,24 +49,20 @@ aws ec2 create-key-pair --key-name lobechat-key \
   --query 'KeyMaterial' --output text > ~/.ssh/lobechat-key.pem
 chmod 400 ~/.ssh/lobechat-key.pem
 
-# 3. Deploy infrastructure (CloudFormation)
+# 3. Deploy infrastructure (CloudFormation + Docker)
 aws cloudformation deploy \
   --template-file infra/cloudformation.yml \
   --stack-name lobechat \
   --capabilities CAPABILITY_IAM
 
-# 4. Get public IP and create inventory
-PUBLIC_IP=$(aws cloudformation describe-stacks --stack-name lobechat \
-  --query 'Stacks[0].Outputs[?OutputKey==`PublicIP`].OutputValue' --output text)
-sed "s/<PUBLIC_IP>/$PUBLIC_IP/" ansible/inventory.yml.template > ansible/inventory.yml
-
-# 5. Deploy application (Ansible)
-uv run ansible-playbook -i ansible/inventory.yml ansible/playbook.yml
+# 4. Get the public IP
+aws cloudformation describe-stacks --stack-name lobechat \
+  --query 'Stacks[0].Outputs[?OutputKey==`PublicIP`].OutputValue' --output text
 ```
 
 ### Access
 
-After Ansible completes, access LobeChat at `http://<PUBLIC_IP>:3210`
+After CloudFormation completes (~3-5 min), access LobeChat at `http://<PUBLIC_IP>:3210`
 
 ---
 
@@ -85,6 +80,20 @@ aws cloudformation delete-stack --stack-name lobechat
 |----------|------|
 | EC2 c7a.2xlarge | ~$0.35/hour (~$8.40/day) |
 | EBS 20GB gp3 | ~$1.60/month |
+
+---
+
+## Docker Images
+
+LobeChat image is published to GitHub Container Registry:
+
+```bash
+# Pull the image
+docker pull ghcr.io/oriolrius/lobechat:latest
+
+# Run locally
+docker compose up -d
+```
 
 ---
 
@@ -106,11 +115,29 @@ aws cloudformation delete-stack --stack-name lobechat
 | Security Group | Ports 22, 3210, 9000, 9001 |
 | EC2 Instance | c7a.2xlarge, Ubuntu 24.04 |
 
-### Services (deployed via Ansible)
+### Services (deployed via Docker Compose)
 
-- PostgreSQL 16 with pgvector
-- MinIO (S3-compatible storage)
-- LobeChat (Next.js application)
+- PostgreSQL 16 with pgvector (`pgvector/pgvector:pg16`)
+- MinIO S3-compatible storage (`minio/minio:latest`)
+- LobeChat (`ghcr.io/oriolrius/lobechat:latest`)
+
+---
+
+## Local Development
+
+```bash
+# Build the image locally
+docker build -t lobechat:local .
+
+# Run with docker-compose
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop
+docker compose down
+```
 
 ---
 
@@ -120,5 +147,6 @@ aws cloudformation delete-stack --stack-name lobechat
 |--------|---------|
 | `v1.x` | Manual EC2 deployment guide |
 | `v2.x` | GitHub Actions CI/CD practice |
-| `v3.x` | CloudFormation with UserData |
-| `v5.x` | CloudFormation + Ansible (this branch) |
+| `v3.x` | CloudFormation with UserData (shell script) |
+| `v4.x` | CloudFormation + Docker Compose + GHCR (this branch) |
+| `v5.x` | CloudFormation + Ansible |

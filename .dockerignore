@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Data directories
+data/
+
+# GitHub
+.github/
+
+# Misc
+*.log
+.DS_Store

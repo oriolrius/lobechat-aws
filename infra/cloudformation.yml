@@ -1,11 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: LobeChat Infrastructure - VPC and EC2 instance (configured via Ansible)
+Description: LobeChat Infrastructure - VPC, EC2 with Docker Compose deployment
 
 Parameters:
   InstanceType:
     Type: String
     Default: c7a.2xlarge
-    Description: EC2 instance type (needs 8 vCPU, 16GB RAM for build)
+    Description: EC2 instance type (8 vCPU, 16GB RAM recommended)
     AllowedValues:
       - c7a.2xlarge
       - c7a.xlarge
@@ -23,6 +23,24 @@ Parameters:
     Description: EBS volume size in GB
     MinValue: 20
     MaxValue: 100
+
+  DBPassword:
+    Type: String
+    Default: lobechat-db-password
+    NoEcho: true
+    Description: PostgreSQL database password
+
+  MinIOPassword:
+    Type: String
+    Default: lobechat-minio-secret
+    NoEcho: true
+    MinLength: 8
+    Description: MinIO root password
+
+  LobeChatVersion:
+    Type: String
+    Default: latest
+    Description: LobeChat Docker image version tag
 
 Mappings:
   RegionAMI:
@@ -142,6 +160,156 @@ Resources:
       Tags:
         - Key: Name
           Value: lobechat-server
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          exec > >(tee /var/log/user-data.log) 2>&1
+          echo "Starting LobeChat Docker deployment..."
+
+          # Update system
+          apt update && apt upgrade -y
+
+          # Install Docker
+          echo "Installing Docker..."
+          curl -fsSL https://get.docker.com | bash
+          usermod -aG docker ubuntu
+
+          # Install Docker Compose plugin
+          apt install -y docker-compose-plugin
+
+          # Get public IP
+          TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+          PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
+
+          # Generate secrets
+          AUTH_SECRET=$(openssl rand -base64 32)
+          KEY_VAULTS_SECRET=$(openssl rand -base64 32)
+
+          # Create application directory
+          mkdir -p /opt/lobechat
+          cd /opt/lobechat
+
+          # Create environment file
+          cat > .env << EOENV
+          PUBLIC_IP=$PUBLIC_IP
+          DB_PASSWORD=${DBPassword}
+          MINIO_USER=lobechat
+          MINIO_PASSWORD=${MinIOPassword}
+          AUTH_SECRET=$AUTH_SECRET
+          KEY_VAULTS_SECRET=$KEY_VAULTS_SECRET
+          LOBECHAT_VERSION=${LobeChatVersion}
+          EOENV
+
+          # Create docker-compose.yml
+          cat > docker-compose.yml << 'EODOCKERCOMPOSE'
+          services:
+            postgres:
+              image: pgvector/pgvector:pg16
+              container_name: lobechat-postgres
+              environment:
+                - POSTGRES_USER=postgres
+                - POSTGRES_PASSWORD=${DB_PASSWORD}
+                - POSTGRES_DB=lobechat
+              volumes:
+                - postgres_data:/var/lib/postgresql/data
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U postgres"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+              restart: unless-stopped
+
+            minio:
+              image: minio/minio:latest
+              container_name: lobechat-minio
+              ports:
+                - "9000:9000"
+                - "9001:9001"
+              environment:
+                - MINIO_ROOT_USER=${MINIO_USER}
+                - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD}
+              volumes:
+                - minio_data:/data
+              command: server /data --console-address ":9001"
+              healthcheck:
+                test: ["CMD", "mc", "ready", "local"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+              restart: unless-stopped
+
+            minio-setup:
+              image: minio/mc:latest
+              container_name: lobechat-minio-setup
+              depends_on:
+                minio:
+                  condition: service_healthy
+              entrypoint: >
+                /bin/sh -c "
+                mc alias set local http://minio:9000 $${MINIO_USER} $${MINIO_PASSWORD};
+                mc mb local/lobechat --ignore-existing;
+                mc anonymous set download local/lobechat;
+                echo 'MinIO bucket configured!';
+                exit 0;
+                "
+
+            lobechat:
+              image: ghcr.io/oriolrius/lobechat:${LOBECHAT_VERSION:-latest}
+              container_name: lobechat
+              ports:
+                - "3210:3210"
+              environment:
+                - APP_URL=http://${PUBLIC_IP}:3210
+                - DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@postgres:5432/lobechat
+                - DATABASE_DRIVER=node
+                - AUTH_SECRET=${AUTH_SECRET}
+                - AUTH_TRUST_HOST=true
+                - KEY_VAULTS_SECRET=${KEY_VAULTS_SECRET}
+                - SECURE_COOKIES=false
+                - S3_ACCESS_KEY_ID=${MINIO_USER}
+                - S3_SECRET_ACCESS_KEY=${MINIO_PASSWORD}
+                - S3_ENDPOINT=http://minio:9000
+                - S3_BUCKET=lobechat
+                - S3_PUBLIC_DOMAIN=http://${PUBLIC_IP}:9000
+                - S3_ENABLE_PATH_STYLE=1
+                - S3_SET_ACL=0
+              depends_on:
+                postgres:
+                  condition: service_healthy
+                minio-setup:
+                  condition: service_completed_successfully
+              restart: unless-stopped
+
+          volumes:
+            postgres_data:
+            minio_data:
+          EODOCKERCOMPOSE
+
+          # Start Docker Compose
+          echo "Starting Docker Compose..."
+          docker compose up -d
+
+          echo ""
+          echo "============================================"
+          echo "   DEPLOYMENT COMPLETE!"
+          echo "============================================"
+          echo ""
+          echo "LobeChat is now running at:"
+          echo "   http://$PUBLIC_IP:3210"
+          echo ""
+          echo "MinIO Console:"
+          echo "   http://$PUBLIC_IP:9001"
+          echo "   User: lobechat"
+          echo "   Password: ${MinIOPassword}"
+          echo ""
+          echo "SSH access:"
+          echo "   ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP"
+          echo ""
+          echo "View logs:"
+          echo "   docker compose logs -f"
+          echo ""
+          echo "============================================"
 
 Outputs:
   VPCId:
@@ -175,17 +343,17 @@ Outputs:
       Name: !Sub '${AWS::StackName}-PublicIP'
 
   LobeChatURL:
-    Description: LobeChat application URL (after Ansible deployment)
+    Description: LobeChat application URL
     Value: !Sub 'http://${EC2Instance.PublicIp}:3210'
 
   MinIOConsoleURL:
-    Description: MinIO Console URL (after Ansible deployment)
+    Description: MinIO Console URL
     Value: !Sub 'http://${EC2Instance.PublicIp}:9001'
 
   SSHCommand:
     Description: SSH command to connect to the instance
     Value: !Sub 'ssh -i ~/.ssh/${KeyPairName}.pem ubuntu@${EC2Instance.PublicIp}'
 
-  AnsibleCommand:
-    Description: Command to run Ansible playbook
-    Value: !Sub 'uv run ansible-playbook -i ansible/inventory.yml ansible/playbook.yml'
+  DockerLogsCommand:
+    Description: Command to view Docker Compose logs
+    Value: 'ssh to instance, then: cd /opt/lobechat && docker compose logs -f'
