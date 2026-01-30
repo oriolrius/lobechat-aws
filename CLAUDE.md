@@ -99,4 +99,4 @@ aws cloudformation describe-stack-events \
 | `v1.x` | Manual EC2 deployment documentation |
 | `v2.x` | GitHub Actions CI/CD practice |
 | `v3.x` | Infrastructure as Code with CloudFormation (UserData) |
-| `v4.x` | CloudFormation + Ansible (this branch) |
+| `v5.x` | CloudFormation + Ansible (this branch) |

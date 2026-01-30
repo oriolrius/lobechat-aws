@@ -1,10 +1,10 @@
-## v4.0.1 (2026-01-30)
+## v5.0.1 (2026-01-30)
 
 ### Fix
 
 - use shell for PostgreSQL setup and add timing to docs
 
-## v4.0.0 (2026-01-29)
+## v5.0.0 (2026-01-29)
 
 ### Feat
 

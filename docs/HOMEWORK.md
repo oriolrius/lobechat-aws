@@ -51,7 +51,7 @@ aws sts get-caller-identity
 ```bash
 git clone https://github.com/oriolrius/lobechat-aws.git
 cd lobechat-aws
-git checkout v4.x
+git checkout v5.x
 ```
 
 ---

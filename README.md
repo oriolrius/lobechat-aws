@@ -121,4 +121,4 @@ aws cloudformation delete-stack --stack-name lobechat
 | `v1.x` | Manual EC2 deployment guide |
 | `v2.x` | GitHub Actions CI/CD practice |
 | `v3.x` | CloudFormation with UserData |
-| `v4.x` | CloudFormation + Ansible (this branch) |
+| `v5.x` | CloudFormation + Ansible (this branch) |
