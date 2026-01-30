@@ -72,7 +72,7 @@ chmod 400 ~/.ssh/lobechat-key.pem
 
 ---
 
-## Step 4: Deploy CloudFormation Stack
+## Step 4: Deploy CloudFormation Stack (~3-4 min)
 
 ```bash
 aws cloudformation deploy \
@@ -113,7 +113,7 @@ echo "Inventory created with IP: $PUBLIC_IP"
 
 ---
 
-## Step 7: Run Ansible Playbook
+## Step 7: Run Ansible Playbook (~12-15 min)
 
 Wait 1-2 minutes for the EC2 instance to be ready, then run:
 
@@ -122,12 +122,15 @@ uv run ansible-playbook -i ansible/inventory.yml ansible/playbook.yml
 ```
 
 This will:
-- Install PostgreSQL 16 with pgvector
-- Install and configure MinIO
-- Install Node.js, pnpm, and bun
-- Clone, build, and deploy LobeChat
+- Install PostgreSQL 16 with pgvector (~2 min)
+- Install and configure MinIO (~1 min)
+- Install Node.js, pnpm, and bun (~2 min)
+- Clone LobeChat repository (~1 min)
+- Install dependencies with `pnpm install` (~3 min)
+- Build LobeChat with `pnpm build` (~5-6 min)
+- Run database migrations and start services (~1 min)
 
-Watch the output. When complete, you'll see:
+Watch the real-time progress. When complete, you'll see:
 
 ```
 ============================================
@@ -239,17 +242,19 @@ ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP "sudo systemctl status lobechat
 
 ## Summary
 
-| Step | Action |
-|------|--------|
-| 1 | Get AWS credentials |
-| 2 | Clone repository |
-| 3 | Create SSH key |
-| 4 | Deploy CloudFormation stack |
-| 5 | Get stack outputs |
-| 6 | Create Ansible inventory |
-| 7 | Run Ansible playbook |
-| 8 | Access LobeChat |
-| 9 | **Cleanup (don't skip!)** |
+| Step | Action | Time |
+|------|--------|------|
+| 1 | Get AWS credentials | 1 min |
+| 2 | Clone repository | 1 min |
+| 3 | Create SSH key | 1 min |
+| 4 | Deploy CloudFormation stack | 3-4 min |
+| 5 | Get stack outputs | 1 min |
+| 6 | Create Ansible inventory | 1 min |
+| 7 | Run Ansible playbook | 12-15 min |
+| 8 | Access LobeChat | - |
+| 9 | **Cleanup (don't skip!)** | 2 min |
+
+**Total time: ~20-25 minutes**
 
 ---
 

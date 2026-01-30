@@ -57,27 +57,17 @@
         state: started
         enabled: true
 
-    - name: Set PostgreSQL password
-      become_user: postgres
-      community.postgresql.postgresql_user:
-        name: postgres
-        password: "{{ db_password }}"
-      ignore_errors: true
-
-    - name: Create lobechat database
-      become_user: postgres
-      community.postgresql.postgresql_db:
-        name: lobechat
-        state: present
-      ignore_errors: true
-
-    - name: Enable pgvector extension
-      become_user: postgres
-      community.postgresql.postgresql_ext:
-        name: vector
-        db: lobechat
-        state: present
-      ignore_errors: true
+    - name: Configure PostgreSQL (password, database, pgvector)
+      ansible.builtin.shell: |
+        sudo -u postgres psql << 'EOSQL'
+        ALTER USER postgres WITH PASSWORD '{{ db_password }}';
+        CREATE DATABASE lobechat;
+        \c lobechat
+        CREATE EXTENSION IF NOT EXISTS vector;
+        EOSQL
+      args:
+        executable: /bin/bash
+      changed_when: true
 
     # MinIO
     - name: Download MinIO server
