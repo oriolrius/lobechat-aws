@@ -209,7 +209,7 @@ Resources:
               container_name: lobechat-postgres
               environment:
                 - POSTGRES_USER=postgres
-                - POSTGRES_PASSWORD=${DB_PASSWORD}
+                - POSTGRES_PASSWORD=${!DB_PASSWORD}
                 - POSTGRES_DB=lobechat
               volumes:
                 - postgres_data:/var/lib/postgresql/data
@@ -227,8 +227,8 @@ Resources:
                 - "9000:9000"
                 - "9001:9001"
               environment:
-                - MINIO_ROOT_USER=${MINIO_USER}
-                - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD}
+                - MINIO_ROOT_USER=${!MINIO_USER}
+                - MINIO_ROOT_PASSWORD=${!MINIO_PASSWORD}
               volumes:
                 - minio_data:/data
               command: server /data --console-address ":9001"
@@ -247,7 +247,7 @@ Resources:
                   condition: service_healthy
               entrypoint: >
                 /bin/sh -c "
-                mc alias set local http://minio:9000 $${MINIO_USER} $${MINIO_PASSWORD};
+                mc alias set local http://minio:9000 ${!MINIO_USER} ${!MINIO_PASSWORD};
                 mc mb local/lobechat --ignore-existing;
                 mc anonymous set download local/lobechat;
                 echo 'MinIO bucket configured!';
@@ -255,23 +255,23 @@ Resources:
                 "
 
             lobechat:
-              image: ghcr.io/oriolrius/lobechat:${LOBECHAT_VERSION:-latest}
+              image: ghcr.io/oriolrius/lobechat:${LobeChatVersion}
               container_name: lobechat
               ports:
                 - "3210:3210"
               environment:
-                - APP_URL=http://${PUBLIC_IP}:3210
-                - DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@postgres:5432/lobechat
+                - APP_URL=http://${!PUBLIC_IP}:3210
+                - DATABASE_URL=postgresql://postgres:${!DB_PASSWORD}@postgres:5432/lobechat
                 - DATABASE_DRIVER=node
-                - AUTH_SECRET=${AUTH_SECRET}
+                - AUTH_SECRET=${!AUTH_SECRET}
                 - AUTH_TRUST_HOST=true
-                - KEY_VAULTS_SECRET=${KEY_VAULTS_SECRET}
+                - KEY_VAULTS_SECRET=${!KEY_VAULTS_SECRET}
                 - SECURE_COOKIES=false
-                - S3_ACCESS_KEY_ID=${MINIO_USER}
-                - S3_SECRET_ACCESS_KEY=${MINIO_PASSWORD}
+                - S3_ACCESS_KEY_ID=${!MINIO_USER}
+                - S3_SECRET_ACCESS_KEY=${!MINIO_PASSWORD}
                 - S3_ENDPOINT=http://minio:9000
                 - S3_BUCKET=lobechat
-                - S3_PUBLIC_DOMAIN=http://${PUBLIC_IP}:9000
+                - S3_PUBLIC_DOMAIN=http://${!PUBLIC_IP}:9000
                 - S3_ENABLE_PATH_STYLE=1
                 - S3_SET_ACL=0
               depends_on:
