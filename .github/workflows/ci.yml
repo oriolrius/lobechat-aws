@@ -34,4 +34,5 @@ jobs:
       - name: Lint Ansible playbook
         run: |
           uv tool install ansible-lint
+          uv tool run ansible-galaxy collection install community.general
           uv tool run ansible-lint ansible/playbook.yml
