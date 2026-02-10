@@ -1,7 +1,7 @@
 # LobeChat Dockerfile
 # Based on official lobehub/lobe-chat Dockerfile (simplified for learning)
 
-ARG NODEJS_VERSION="20"
+ARG NODEJS_VERSION="22"
 
 ## Base image
 FROM node:${NODEJS_VERSION}-alpine AS base
@@ -73,6 +73,9 @@ COPY --from=builder /deps/node_modules/drizzle-orm ./node_modules/drizzle-orm
 # Copy server launcher
 COPY --from=builder /app/scripts/serverLauncher/startServer.js ./startServer.js
 COPY --from=builder /app/scripts/_shared ./scripts/_shared
+
+# Create symlink for /bin/node (required by upstream docker.cjs migration script)
+RUN ln -s /usr/local/bin/node /bin/node
 
 RUN chown -R nextjs:nodejs /app
 
