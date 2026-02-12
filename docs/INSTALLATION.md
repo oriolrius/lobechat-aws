@@ -298,6 +298,13 @@ cd /opt/lobechat
 git clone --depth 1 https://github.com/lobehub/lobe-chat.git .
 ```
 
+### Install dependencies (~1.5 minutes)
+
+```bash
+cd /opt/lobechat
+pnpm install
+```
+
 ### Configure environment (before build!)
 
 **Purpose**: Set all configuration variables. The build process bakes some values into the app, so this must be done first.
@@ -362,13 +369,6 @@ cp /opt/lobechat/.env /opt/lobechat/.env.local
 
 # Save public IP for later reference
 echo "PUBLIC_IP=$PUBLIC_IP" > ~/.lobechat_config
-```
-
-### Install dependencies (~1.5 minutes)
-
-```bash
-cd /opt/lobechat
-pnpm install
 ```
 
 ### Build LobeChat (~5-6 minutes)
