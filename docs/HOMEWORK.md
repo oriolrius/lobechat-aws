@@ -26,6 +26,7 @@ Practice GitHub workflows by contributing to this repository.
 - Kim Schäfer
 - Noah Cordero Reschka
 - Pablo Muñoz
+- Rayen Gallas
 - Rodrigo Sastré Villaseñor
 - TASNIM EL FAGHLOUMI
 - Your PR with green CI checks
