@@ -25,6 +25,7 @@ Practice GitHub workflows by contributing to this repository.
 - Irene Cavallé
 - Johanna Schmucker
 - Kim Schäfer
+- Narcís Agustí
 - Nicholas Bird
 - Noah Cordero Reschka
 - Nono Lamua
