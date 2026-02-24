@@ -230,9 +230,74 @@ ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP "sudo systemctl status lobechat
 
 ---
 
-## Checklist
+## Deliverables
 
-- [ ] Deployed CloudFormation stack
-- [ ] Accessed LobeChat in browser
-- [ ] Created an account and tested the app
-- [ ] **Deleted the stack to avoid costs**
+Submit a **PDF document** containing the following evidence:
+
+### Required Screenshots
+
+1. **AWS Credentials verification** - Output of `aws sts get-caller-identity`
+2. **Stack creation** - CloudFormation stack in AWS Console showing `CREATE_COMPLETE` status
+3. **Stack outputs** - Output of `describe-stacks` command showing PublicIP and LobeChatURL
+4. **EC2 instance** - EC2 console showing the running `lobechat-server` instance
+5. **Installation complete** - Terminal showing the "INSTALLATION COMPLETE" message from the log
+6. **LobeChat login page** - Browser screenshot of `http://<PUBLIC_IP>:3210`
+7. **LobeChat working** - Browser screenshot after creating an account (showing the chat interface)
+8. **Stack deletion** - Output confirming stack deletion or AWS Console showing stack deleted
+
+### Documentation Questions
+
+Answer the following questions in your PDF (1-2 paragraphs each):
+
+1. **What resources does the CloudFormation template create?** Explain the purpose of each resource (VPC, subnet, security group, EC2 instance).
+
+2. **What is the UserData script and why is it needed?** Describe what gets installed and why this approach is useful.
+
+3. **What are the benefits of Infrastructure as Code (IaC)?** Based on your experience with this exercise, explain at least 3 benefits compared to manual deployment.
+
+---
+
+## Submission Checklist
+
+- [ ] PDF contains all 8 required screenshots
+- [ ] PDF contains answers to all 3 documentation questions
+- [ ] Screenshots are clear and readable
+- [ ] **Stack has been deleted to avoid costs**
+
+---
+
+## Grading Rubric
+
+| Criteria | Points |
+|----------|--------|
+| **Stack Deployment** | 25 |
+| Successfully deployed CloudFormation stack | 15 |
+| Screenshots of stack creation and outputs | 10 |
+| **Evidence of Working Deployment** | 30 |
+| EC2 instance running screenshot | 10 |
+| Installation complete log screenshot | 5 |
+| LobeChat login page screenshot | 5 |
+| LobeChat working (chat interface) screenshot | 10 |
+| **Documentation** | 30 |
+| CloudFormation resources explanation | 10 |
+| UserData script explanation | 10 |
+| IaC benefits explanation | 10 |
+| **Cleanup** | 15 |
+| Stack deletion confirmation | 15 |
+| **Total** | **100** |
+
+---
+
+## PDF Structure
+
+Organize your submission as follows:
+
+```
+1. Introduction (your name, date)
+2. Screenshots (numbered 1-8 with captions)
+3. Documentation Answers
+   3.1 CloudFormation Resources
+   3.2 UserData Script
+   3.3 IaC Benefits
+4. Conclusion (optional: lessons learned)
+```
