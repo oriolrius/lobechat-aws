@@ -21,6 +21,7 @@ Practice GitHub workflows by contributing to this repository.
 - Carlos Arcusa
 - Carolina Kogan
 - Guennoun Ismail
+- Ignacio Baratech
 - Irene Cavallé
 - Johanna Schmucker
 - Kim Schäfer
