@@ -19,6 +19,7 @@ Practice GitHub workflows by contributing to this repository.
 
 - Carl Graf von Moltke
 - Carlos Arcusa
+- Guennoun Ismail
 - Irene Cavallé
 - Pablo Muñoz
 - Rodrigo Sastré Villaseñor
