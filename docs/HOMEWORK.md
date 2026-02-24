@@ -46,6 +46,7 @@ Practice GitHub workflows by contributing to this repository.
 - Noah Cordero Reschka
 - Nono Lamua
 - Pablo Muñoz
+- Rafa Moro
 - Rayen Gallas
 - Rodrigo Sastré Villaseñor
 - Samad Ahuja
