@@ -28,6 +28,7 @@ Practice GitHub workflows by contributing to this repository.
 - Pablo Muñoz
 - Rayen Gallas
 - Rodrigo Sastré Villaseñor
+- Samad Ahuja
 - TASNIM EL FAGHLOUMI
 - Your PR with green CI checks
 - (your name here)
