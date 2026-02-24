@@ -27,6 +27,7 @@ Practice GitHub workflows by contributing to this repository.
 - Kim Schäfer
 - Nicholas Bird
 - Noah Cordero Reschka
+- Nono Lamua
 - Pablo Muñoz
 - Rayen Gallas
 - Rodrigo Sastré Villaseñor
