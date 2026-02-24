@@ -24,6 +24,7 @@ Practice GitHub workflows by contributing to this repository.
 - Irene Cavallé
 - Pablo Muñoz
 - Rodrigo Sastré Villaseñor
+- TASNIM EL FAGHLOUMI
 - (your name here)
 
 ## Deliverable
