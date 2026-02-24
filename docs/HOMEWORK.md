@@ -25,6 +25,7 @@ Practice GitHub workflows by contributing to this repository.
 - Irene Cavallé
 - Johanna Schmucker
 - Kim Schäfer
+- Laura Rodriguez O
 - Lucas Escayola Royuela
 - Narcís Agustí
 - Nerea Ugarte
