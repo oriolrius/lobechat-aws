@@ -36,6 +36,7 @@ Practice GitHub workflows by contributing to this repository.
 - Lucia Pursals
 - Lucía Tortajada
 - Léa Ulrich
+- Marc Cano Tomàs
 - Margarita Ivanova
 - Narcís Agustí
 - Nerea Ugarte
