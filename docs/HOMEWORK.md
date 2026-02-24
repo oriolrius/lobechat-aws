@@ -25,7 +25,9 @@ Practice GitHub workflows by contributing to this repository.
 - Irene Cavallé
 - Johanna Schmucker
 - Kim Schäfer
+- Lucas Escayola Royuela
 - Narcís Agustí
+- Nerea Ugarte
 - Nicholas Bird
 - Noah Cordero Reschka
 - Nono Lamua
@@ -34,7 +36,6 @@ Practice GitHub workflows by contributing to this repository.
 - Rodrigo Sastré Villaseñor
 - Samad Ahuja
 - TASNIM EL FAGHLOUMI
-- Your PR with green CI checks
 - (your name here)
 
 ## Deliverable
