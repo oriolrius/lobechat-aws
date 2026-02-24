@@ -23,6 +23,7 @@ Practice GitHub workflows by contributing to this repository.
 - Carlos Arcusa
 - Carolina Kogan
 - Francisco Javier Climent
+- Gabriela Herraiz
 - Gael Mensa López
 - Guennoun Ismail
 - Ignacio Baratech
