@@ -36,6 +36,7 @@ Practice GitHub workflows by contributing to this repository.
 - Narcís Agustí
 - Nerea Ugarte
 - Nicholas Bird
+- Nicolau San Millán
 - Noah Cordero Reschka
 - Nono Lamua
 - Pablo Muñoz
