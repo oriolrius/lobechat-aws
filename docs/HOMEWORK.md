@@ -21,6 +21,7 @@ Practice GitHub workflows by contributing to this repository.
 - Carlos Arcusa
 - Irene Cavallé
 - Pablo Muñoz
+- Rodrigo Sastré Villaseñor
 - (your name here)
 
 ## Deliverable
