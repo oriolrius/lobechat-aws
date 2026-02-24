@@ -29,6 +29,7 @@ Practice GitHub workflows by contributing to this repository.
 - Lorena Pinillos
 - Lucas Escayola Royuela
 - Lucía Tortajada
+- Margarita Ivanova
 - Narcís Agustí
 - Nerea Ugarte
 - Nicholas Bird
