@@ -25,6 +25,7 @@ Practice GitHub workflows by contributing to this repository.
 - Pablo Muñoz
 - Rodrigo Sastré Villaseñor
 - TASNIM EL FAGHLOUMI
+- Your PR with green CI checks
 - (your name here)
 
 ## Deliverable
