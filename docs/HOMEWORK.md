@@ -17,6 +17,7 @@ Practice GitHub workflows by contributing to this repository.
 
 <!-- Add your name below in alphabetical order -->
 
+- Adam Aqasbi Ouahi
 - Carl Graf von Moltke
 - Carlos Arcusa
 - Carolina Kogan
