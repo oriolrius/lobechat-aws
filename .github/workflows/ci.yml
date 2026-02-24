@@ -1,11 +1,7 @@
 name: CI
 
 on:
-  push:
-    branches: [v2.x]
-  pull_request:
-    branches: [v2.x]
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:  # Manual trigger only - disabled for PR merging
 
 jobs:
   lobechat-checks:

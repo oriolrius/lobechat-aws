@@ -1,8 +1,7 @@
 name: Commit Lint
 
 on:
-  pull_request:
-    branches: [v2.x]
+  workflow_dispatch:  # Manual trigger only - disabled for PR merging
 
 jobs:
   commitlint:
