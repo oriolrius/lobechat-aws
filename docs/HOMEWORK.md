@@ -17,13 +17,13 @@ Practice GitHub workflows by contributing to this repository.
 
 <!-- Add your name below in alphabetical order -->
 
-- 3. **Commit** using the convention: ``
 - Adam Aqasbi Ouahi
 - Bruno Marco
 - Carl Graf von Moltke
 - Carlos Arcusa
 - Carolina Kogan
 - Daniyar Kassymov
+- Finn Solly
 - Francisco Javier Climent
 - Gabriela Herraiz
 - Gael Mensa López
