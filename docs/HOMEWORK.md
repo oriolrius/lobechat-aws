@@ -31,6 +31,7 @@ Practice GitHub workflows by contributing to this repository.
 - Ignacio Baratech
 - Irene Cavallé
 - Johanna Schmucker
+- Juri Weber
 - Kim Schäfer
 - Laura Rodriguez O
 - Lorena Pinillos
@@ -45,6 +46,7 @@ Practice GitHub workflows by contributing to this repository.
 - Nicholas Bird
 - Nicolau San Millán
 - Noah Cordero Reschka
+- Nodo Tchrikishvili
 - Nono Lamua
 - Pablo Muñoz
 - Rafa Moro
