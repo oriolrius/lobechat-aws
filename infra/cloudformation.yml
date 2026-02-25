@@ -162,15 +162,20 @@ Resources:
           exec > >(tee /var/log/user-data.log) 2>&1
           echo "Starting LobeChat installation..."
 
-          # Update system
-          apt update && apt upgrade -y
+          # Prevent interactive prompts
+          export DEBIAN_FRONTEND=noninteractive
+          export NEEDRESTART_MODE=a
+
+          # Update system (non-interactive)
+          apt-get update
+          apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 
           # Install PostgreSQL 16 with pgvector
           echo "Installing PostgreSQL 16..."
           sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-          apt update
-          apt install -y postgresql-16 postgresql-contrib-16 postgresql-16-pgvector
+          apt-get update
+          apt-get install -y postgresql-16 postgresql-contrib-16 postgresql-16-pgvector
 
           systemctl enable postgresql
           systemctl start postgresql
@@ -224,13 +229,23 @@ Resources:
           mc mb local/lobechat --ignore-existing
           mc anonymous set download local/lobechat
 
-          # Install Node.js 20
-          echo "Installing Node.js 20..."
-          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-          apt install -y nodejs
+          # Install build tools first
+          echo "Installing build tools..."
+          apt-get install -y git build-essential unzip ca-certificates curl gnupg
 
-          # Install build tools and pnpm
-          apt install -y git build-essential unzip
+          # Install Node.js 20 from NodeSource
+          echo "Installing Node.js 20..."
+          mkdir -p /etc/apt/keyrings
+          curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
+          apt-get update
+          apt-get install -y nodejs
+
+          # Verify Node.js and npm are installed
+          echo "Node.js version: $(node --version)"
+          echo "npm version: $(npm --version)"
+
+          # Install pnpm
           npm install -g pnpm
 
           # Install bun for database migrations (symlink to /usr/local/bin for PATH access)
@@ -271,14 +286,6 @@ Resources:
           S3_SET_ACL=0
           EOENV
 
-          # Generate JWKS key
-          cd /opt/lobechat
-          JWKS_KEY=$(sudo -u ubuntu node scripts/generate-oidc-jwk.mjs 2>/dev/null || echo "")
-          if [ -n "$JWKS_KEY" ]; then
-            echo "" >> .env
-            echo "JWKS_KEY='$JWKS_KEY'" >> .env
-          fi
-
           cp /opt/lobechat/.env /opt/lobechat/.env.local
           chown ubuntu:ubuntu /opt/lobechat/.env /opt/lobechat/.env.local
 
@@ -286,6 +293,17 @@ Resources:
           echo "Installing dependencies..."
           cd /opt/lobechat
           sudo -u ubuntu pnpm install
+
+          # Generate JWKS key (after dependencies are installed)
+          echo "Generating JWKS key..."
+          cd /opt/lobechat
+          JWKS_KEY=$(sudo -u ubuntu node scripts/generate-oidc-jwk.mjs 2>/dev/null || echo "")
+          if [ -n "$JWKS_KEY" ]; then
+            echo "" >> .env
+            echo "JWKS_KEY='$JWKS_KEY'" >> .env
+            cp .env .env.local
+            chown ubuntu:ubuntu .env .env.local
+          fi
 
           # Build LobeChat
           echo "Building LobeChat (this takes 5-6 minutes)..."
