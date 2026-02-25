@@ -51,6 +51,7 @@ Practice GitHub workflows by contributing to this repository.
 - Rayen Gallas
 - Rodrigo Sastré Villaseñor
 - Samad Ahuja
+- Sander Rannik
 - TASNIM EL FAGHLOUMI
 - Victor Pérez
 - Yago Granada
