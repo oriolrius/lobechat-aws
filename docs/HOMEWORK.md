@@ -57,6 +57,7 @@ Practice GitHub workflows by contributing to this repository.
 - TASNIM EL FAGHLOUMI
 - Victor Pérez
 - Yago Granada
+- Júlia Vidal
 - Alain Castaños
 
 ## Deliverable
