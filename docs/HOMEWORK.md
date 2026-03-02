@@ -58,6 +58,7 @@ Practice GitHub workflows by contributing to this repository.
 - Victor Pérez
 - Yago Granada
 - Alain Castaños
+- Albert Blade
 
 ## Deliverable
 
