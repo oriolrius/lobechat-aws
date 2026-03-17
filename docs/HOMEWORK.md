@@ -161,7 +161,7 @@ You should see the LobeChat login page. Create an account and start using it.
 
 ### What to Submit on eCampus (Moodle)
 
-Take the following screenshots and upload them to the assignment on eCampus:
+Take the following screenshots, combine them into a single PDF, and upload it to the assignment on eCampus:
 
 1. **Ansible PLAY RECAP** — Terminal screenshot showing the final recap with `ok`, `changed`, and `failed=0` counts.
 
