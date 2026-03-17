@@ -155,7 +155,23 @@ You should see the LobeChat login page. Create an account and start using it.
 
 ---
 
-## Step 9: Cleanup (MANDATORY!)
+## Step 9: Capture Evidence for Submission
+
+> **Do this BEFORE deleting the stack!**
+
+### What to Submit on eCampus (Moodle)
+
+Take the following screenshots and upload them to the assignment on eCampus:
+
+1. **Ansible PLAY RECAP** — Terminal screenshot showing the final recap with `ok`, `changed`, and `failed=0` counts.
+
+2. **LobeChat running in the browser** — Screenshot of the LobeChat interface at `http://<PUBLIC_IP>:3210` showing a working session (e.g., the chat page after creating an account).
+
+3. **Stack deletion confirmation** — Screenshot of the terminal after running the cleanup commands, showing the stack no longer exists.
+
+---
+
+## Step 10: Cleanup (MANDATORY!)
 
 > **Do not skip this step!** Leaving the stack running will consume your AWS budget.
 
@@ -252,7 +268,8 @@ ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP "sudo systemctl status lobechat
 | 6 | Create Ansible inventory | 1 min |
 | 7 | Run Ansible playbook | 12-15 min |
 | 8 | Access LobeChat | - |
-| 9 | **Cleanup (don't skip!)** | 2 min |
+| 9 | **Capture screenshots for submission** | 2 min |
+| 10 | **Cleanup (don't skip!)** | 2 min |
 
 **Total time: ~20-25 minutes**
 
@@ -264,4 +281,5 @@ ssh -i ~/.ssh/lobechat-key.pem ubuntu@$PUBLIC_IP "sudo systemctl status lobechat
 - [ ] Ran Ansible playbook successfully
 - [ ] Accessed LobeChat in browser
 - [ ] Created an account and tested the app
+- [ ] **Captured screenshots for eCampus submission**
 - [ ] **Deleted the stack to avoid costs**
