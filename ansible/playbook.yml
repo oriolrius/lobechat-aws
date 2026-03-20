@@ -51,19 +51,41 @@
         state: present
         update_cache: true
 
+    - name: Download pg_search extension
+      ansible.builtin.get_url:
+        url: https://github.com/paradedb/paradedb/releases/download/v0.22.0/postgresql-16-pg-search_0.22.0-1PARADEDB-noble_amd64.deb
+        dest: /tmp/pg_search.deb
+        mode: '0644'
+
+    - name: Install pg_search extension
+      ansible.builtin.apt:
+        deb: /tmp/pg_search.deb
+        state: present
+
+    - name: Add pg_search to shared_preload_libraries
+      ansible.builtin.lineinfile:
+        path: /etc/postgresql/16/main/postgresql.conf
+        regexp: '^shared_preload_libraries'
+        line: "shared_preload_libraries = 'pg_search'"
+      notify: Restart PostgreSQL
+
     - name: Start and enable PostgreSQL
       ansible.builtin.systemd:
         name: postgresql
         state: started
         enabled: true
 
-    - name: Configure PostgreSQL (password, database, pgvector)
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Configure PostgreSQL (password, database, extensions)
       ansible.builtin.shell: |
         sudo -u postgres psql << 'EOSQL'
         ALTER USER postgres WITH PASSWORD '{{ db_password }}';
         CREATE DATABASE lobechat;
         \c lobechat
         CREATE EXTENSION IF NOT EXISTS vector;
+        CREATE EXTENSION IF NOT EXISTS pg_search;
         EOSQL
       args:
         executable: /bin/bash
@@ -362,6 +384,11 @@
           ============================================
 
   handlers:
+    - name: Restart PostgreSQL
+      ansible.builtin.systemd:
+        name: postgresql
+        state: restarted
+
     - name: Restart MinIO
       ansible.builtin.systemd:
         name: minio
