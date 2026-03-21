@@ -1,66 +1,70 @@
 # Contributing
 
-## Setup
+## Commit Convention
 
-```bash
-git clone <repo-url>
-cd lobechat-aws
-uv sync
-git config core.hooksPath .githooks
-```
-
-## Commit Messages
-
-This project uses [Conventional Commits](https://www.conventionalcommits.org/) enforced by [commitizen](https://commitizen-tools.github.io/commitizen/).
+This project follows [Conventional Commits](https://www.conventionalcommits.org/).
 
 ### Format
 
 ```
-type(scope)?: description
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
 ```
 
 ### Types
 
-| Type | Version Bump |
-|------|--------------|
-| `feat` | MINOR |
-| `fix` | PATCH |
-| `feat!` / `fix!` | MAJOR |
-| `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore` | none |
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `style` | Formatting, no code change |
+| `refactor` | Code change, no new feature or bug fix |
+| `perf` | Performance improvement |
+| `test` | Adding tests |
+| `build` | Build system or dependencies |
+| `ci` | CI configuration |
+| `chore` | Other changes |
+| `revert` | Revert previous commit |
 
-### Making Commits
-
-**Option 1**: Standard git commit (validated by hook)
-```bash
-git commit -m "feat: add health check endpoint"
-```
-
-**Option 2**: Interactive commitizen
-```bash
-cz commit
-```
-
-### Validation
+### Examples
 
 ```bash
-cz check          # validate last commit
-cz check -m "feat: test message"  # validate a message
+feat: add new installation step for Redis
+fix(docs): correct typo in architecture diagram
+docs: update README with cost warnings
+ci: add release workflow with assets
 ```
 
 ## Versioning
 
-Version bumps are automatic based on commit types:
+This project uses [Semantic Versioning](https://semver.org/):
 
-```bash
-cz bump           # bump version based on commits since last tag
-cz bump --dry-run # preview the bump
-cz changelog      # generate CHANGELOG.md
-```
+- **MAJOR** (x.0.0): Breaking changes
+- **MINOR** (0.x.0): New features, backwards compatible
+- **PATCH** (0.0.x): Bug fixes, backwards compatible
 
-### Examples
+### Creating a Release
 
-```
-feat: add feature    → 0.1.0 → 0.2.0 (MINOR)
-fix: resolve bug     → 0.1.0 → 0.1.1 (PATCH)
-feat!: breaking      → 0.1.0 → 1.0.0 (MAJOR)
-```
+1. Ensure all changes are committed following the commit convention
+2. Create and push a tag:
+   ```bash
+   git tag v2.1.0
+   git push origin v2.1.0
+   ```
+3. The release workflow automatically:
+   - Generates release notes from commits
+   - Creates source archives (.zip, .tar.gz)
+   - Publishes the GitHub release
+
+## Pull Requests
+
+1. Create a branch from `v2.x`
+2. Make changes with conventional commits
+3. Open PR against `v2.x`
+4. CI will validate:
+   - Commit messages (commitlint)
+   - LobeChat type checking and linting

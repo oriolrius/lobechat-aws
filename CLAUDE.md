@@ -4,116 +4,84 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LobeChat Local Stack - A self-hosted AI chat platform with PostgreSQL, Casdoor SSO, MinIO storage, vLLM inference, and MCP server integrations. Version managed with Commitizen (currently v0.5.2).
+GitHub Actions Practice - A hands-on exercise for ESADE students to learn CI/CD workflows, conventional commits, and pull request processes.
 
-## Common Commands
+> For EC2 deployment instructions, see branch `v1.x`.
 
-### Docker Stack
-```bash
-docker compose up -d              # Start entire stack
-docker compose down               # Stop stack
-docker compose logs -f lobe-chat  # View LobeChat logs
-docker compose restart <service>  # Restart specific service
+## Repository Structure
+
+```
+.
+├── .github/workflows/
+│   ├── ci.yml           # Lint and type checks on push/PR
+│   ├── commitlint.yml   # Validates conventional commit messages
+│   └── release.yml      # CI checks + auto-creates releases on tags
+├── docs/
+│   ├── CI-CD.md         # Detailed CI/CD pipeline documentation
+│   ├── HOMEWORK.md      # Student exercise instructions
+│   ├── images/          # PNG exports of diagrams
+│   └── diagrams/        # Draw.io source files
+├── README.md            # Quick start and solution steps
+├── CONTRIBUTING.md      # Contribution guidelines
+├── CLAUDE.md            # This file
+└── .gitignore
 ```
 
-### Testing
-```bash
-uv run --group test pytest tests/ -v                    # Run all tests
-uv run --group test pytest tests/test_vllm.py -v        # Run single test file
-uv run --group test pytest tests/test_vllm.py::test_health -v  # Run single test
+## GitHub Actions Workflows
+
+| Workflow | File | Trigger | Purpose |
+|----------|------|---------|---------|
+| CI | `ci.yml` | Push/PR to v2.x | Clones LobeChat, runs type-check and lint |
+| Commit Lint | `commitlint.yml` | PR to v2.x | Validates commit messages follow conventional format |
+| Release | `release.yml` | Tag `v*.*.*` | Runs CI checks first, then creates GitHub release |
+
+> **Note**: Release workflow waits for CI to pass before creating a release. See [docs/CI-CD.md](docs/CI-CD.md) for details.
+
+## Conventional Commits
+
+All commits must follow the [Conventional Commits](https://conventionalcommits.org) specification:
+
+```
+<type>: <description>
 ```
 
-### Database Migrations (dbmate)
+**Valid types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `ci`, `chore`
+
+**Examples**:
 ```bash
-# First time setup: download dbmate binary and install postgresql-client-16
-mkdir -p contrib && curl -fsSL https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64 -o contrib/dbmate && chmod +x contrib/dbmate
-sudo apt-get install -y postgresql-client-16
-
-# Create new migration
-./db/migrate new create_users
-
-# Run pending migrations
-./db/migrate up
-
-# Rollback last migration
-./db/migrate rollback
-
-# Check migration status
-./db/migrate status
-
-# Dump current schema to db/schema.sql
-./db/migrate dump
-
-# Dump current data to db/seed.sql
-./db/migrate dump-seed
-
-# Recreate database from schema + seed + migrations
-./db/migrate drop      # Drop existing database
-./db/migrate load      # Load db/schema.sql
-./db/migrate load-seed # Load db/seed.sql
-./db/migrate up        # Apply any pending migrations
+docs: add student-name to homework
+fix: correct typo in README
+feat: add new workflow
+ci: update Node.js version
 ```
 
-Migrations are stored in `db/migrations/` as plain SQL with `-- migrate:up` and `-- migrate:down` sections. The `db/schema.sql` is the schema snapshot and `db/seed.sql` contains initial data for rebuilding the database from scratch.
+## Homework Exercise
 
-### Git & Versioning
+Students practice the fork/PR workflow:
+
+1. Fork the repository
+2. Edit `docs/HOMEWORK.md` - add name to the list
+3. Commit with `docs: add <name> to homework`
+4. Push and create PR to `v2.x`
+5. Verify CI workflows pass (green checkmarks)
+
+## Common Operations
+
 ```bash
-git config core.hooksPath .githooks  # Enable commit validation hook
-cz commit                            # Interactive conventional commit
-cz bump                              # Bump version based on commits
-cz changelog                         # Generate CHANGELOG.md
+# Check commit message format locally
+npx commitlint --from HEAD~1 --to HEAD
+
+# View workflow runs (requires gh CLI)
+gh run list
+
+# Create a release tag
+git tag -a v2.0.0 -m "Release v2.0.0"
+git push origin v2.0.0
 ```
 
-Commit format: `type(scope)?: description` where type is feat/fix/docs/style/refactor/test/build/ci/chore. Breaking changes use `!` suffix (e.g., `feat!:`).
+## Branch Strategy
 
-## Architecture
-
-**Services (docker-compose.yml):**
-- **lobe-chat** (47000): Next.js chat application with database backend
-- **casdoor** (47002): SSO authentication provider
-- **mcphub** (47008): MCP server hub routing to 7 MCP servers
-- **vllm** (47007): Local GPU-based LLM inference (Gemma 3 270M)
-- **minio** (47005/47006): S3-compatible object storage
-- **postgres** (internal): pgvector database shared by all services
-
-**MCP Servers via MCPHub:**
-- ssh-exec: SSH command execution (whitelisted commands only)
-- aws-resources-operations: AWS boto3 operations
-- aws-documentation: AWS docs search
-- playwright: Browser automation & screenshots
-- pickstar-2002-minio-mcp: MinIO S3 operations
-- notion-mcp: Notion database integration
-- filesystem: Local file access
-
-**Data Flow:** LobeChat → Casdoor (auth) → PostgreSQL (data) → MinIO (files) → MCPHub (tools) → vLLM/OpenRouter (inference)
-
-## Key Configuration Files
-
-- `config/mcp_settings.json`: MCPHub server configuration with security restrictions
-- `config/init_data.json`: Casdoor SSO initial data
-- `config/init-postgres.sql`: Database initialization (creates lobechat, casdoor DBs)
-- `db/migrate`: Database migration wrapper script (uses dbmate)
-- `db/schema.sql`: Database schema snapshot (for recreating DB)
-- `db/seed.sql`: Database seed data (for recreating DB)
-- `db/migrations/`: Incremental SQL migration files
-- `patches/route.js`: LobeChat hotfix for MCP session retry logic
-- `.env.example`: Environment variable template
-
-## Environment Setup
-
-1. `cp .env.example .env` and configure secrets (min 32 chars for KEY_VAULTS_SECRET, NEXT_AUTH_SECRET)
-2. Set HF_TOKEN for vLLM model downloads
-3. Set OPENROUTER_API_KEY for external LLM/embeddings
-4. AWS credentials auto-mounted from `~/.aws`
-
-## Port Reference
-
-| Port  | Service        |
-|-------|----------------|
-| 47000 | LobeChat       |
-| 47002 | Casdoor        |
-| 47003 | PostgreSQL     |
-| 47005 | MinIO API      |
-| 47006 | MinIO Console  |
-| 47007 | vLLM           |
-| 47008 | MCPHub         |
+| Branch | Purpose |
+|--------|---------|
+| `v1.x` | EC2 deployment documentation |
+| `v2.x` | GitHub Actions practice (this branch) |

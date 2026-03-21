@@ -1,17 +1,8 @@
 # Data directories (contain runtime data)
 data/
 
-# Downloaded binaries
-contrib/
-
 # Environment files with secrets
 .env
-
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-uv.lock
 
 # AWS credentials and keys
 aws_credentials.yaml
@@ -21,4 +12,3 @@ aws_credentials.yaml
 .idea/
 .vscode/
 *.swp
-config/ssh/

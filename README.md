@@ -1,85 +1,96 @@
-# LobeChat Local Stack
+# LobeChat AWS - GitHub Actions Practice
 
-Self-hosted LobeChat with PostgreSQL, Casdoor authentication, and MinIO storage.
+This branch (`v2.x`) focuses on **CI/CD practice** with GitHub Actions.
 
-## Quick Start
+> For EC2 deployment instructions, see branch `v1.x`.
 
-```bash
-docker compose up -d
-```
+---
 
-## Architecture
+## Homework
 
-See [docs/architecture.drawio](docs/architecture.drawio) for visual diagram.
+**[HOMEWORK.md](docs/HOMEWORK.md)** - Add your name to practice GitHub workflows.
 
-```
-User --> LobeChat (:47000)
-              |
-              +--> Casdoor (:47002)  --> PostgreSQL (casdoor db)
-              |
-              +--> MinIO (:47005)    --> ./data/minio
-              |
-              +--> PostgreSQL        --> ./data/postgres
-                   (lobechat db)
-```
-
-## Services
-
-| Service | Container | Port | Description |
-|---------|-----------|------|-------------|
-| LobeChat | lobe-chat | 47000 | Main application |
-| Casdoor | casdoor | 47002 | SSO authentication |
-| MinIO S3 | minio | 47005 | Object storage API |
-| MinIO Console | minio | 47006 | Storage admin UI |
-| PostgreSQL | shared-postgres | - | Database (internal) |
-
-## Access
-
-| Service | URL |
-|---------|-----|
-| LobeChat | http://localhost:47000 |
-| Casdoor Admin | http://localhost:47002 |
-| MinIO Console | http://localhost:47006 |
-
-## Credentials
-
-| Service | Username | Password |
-|---------|----------|----------|
-| LobeChat | user | pswd123 |
-| MinIO | minioadmin | minioadmin |
-
-## Commands
+### Solution Steps
 
 ```bash
-docker compose up -d          # Start
-docker compose down           # Stop
-docker compose logs -f        # All logs
-docker compose logs -f lobe-chat  # LobeChat logs
-docker compose restart lobe-chat  # Restart service
+# 1. Fork this repo on GitHub (click Fork button)
+
+# 2. Clone your fork
+git clone https://github.com/<YOUR-USERNAME>/lobechat-aws.git
+cd lobechat-aws
+git checkout v2.x
+
+# 3. Edit docs/HOMEWORK.md - add your name to the list
+
+# 4. Commit with conventional message
+git add docs/HOMEWORK.md
+git commit -m "docs: add <your-name> to homework"
+
+# 5. Push to your fork
+git push origin v2.x
+
+# 6. Create Pull Request
+#    - Go to your fork on GitHub
+#    - Click "Contribute" → "Open pull request"
+#    - Base: oriolrius/lobechat-aws v2.x ← Head: your-fork v2.x
+#    - Create pull request
+
+# 7. Watch CI workflows run in the "Checks" tab
 ```
 
-## Project Structure
+---
+
+## What You'll Learn
+
+| Concept | Where |
+|---------|-------|
+| Fork & Clone | Steps 1-2 |
+| Conventional Commits | Step 4 |
+| Pull Requests | Steps 5-6 |
+| CI/CD Pipelines | Step 7 |
+
+---
+
+## Workflows
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | Push/PR to v2.x | Lint & type check |
+| `commitlint.yml` | PR to v2.x | Validate commit messages |
+| `release.yml` | Tag `v*.*.*` | Auto-create releases |
+
+> **Deep Dive**: See [docs/CI-CD.md](docs/CI-CD.md) for detailed pipeline documentation with diagrams.
+
+---
+
+## Commit Convention
+
+Messages must follow [Conventional Commits](https://conventionalcommits.org):
 
 ```
-.
-├── docker-compose.yml     # Stack definition
-├── .env                   # Environment variables
-├── config/
-│   ├── casdoor-app.conf   # Casdoor server config
-│   ├── init_data.json     # Casdoor initial data
-│   ├── init-postgres.sql  # Database init script
-│   └── esade.pem          # AWS SSH key (future use)
-├── data/
-│   ├── postgres/          # PostgreSQL data
-│   └── minio/             # Uploaded files
-└── docs/
-    └── architecture.drawio  # Architecture diagram
+<type>: <description>
 ```
 
-## Configuration
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `ci`, `chore`
 
-Edit `.env` for:
-- `AUTH_CASDOOR_*` - SSO settings
-- `S3_*` - MinIO storage
-- `POSTGRES_PASSWORD` - Database password
-- `KEY_VAULTS_SECRET` - API key encryption
+Examples:
+```bash
+docs: add john-doe to homework
+fix: correct typo in README
+feat: add new workflow
+```
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
+
+---
+
+## Branches
+
+| Branch | Purpose |
+|--------|---------|
+| `v1.x` | EC2 deployment guide |
+| `v2.x` | GitHub Actions practice (this branch) |
