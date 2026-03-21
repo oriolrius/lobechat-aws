@@ -29,7 +29,7 @@ Practice GitHub workflows by contributing to this repository.
 - Laura Rodriguez O
 - Lorena Pinillos
 - Lucas Escayola Royuela
-- Lucia Pursals
+- Lucía Pursals
 - Lucía Tortajada
 - Léa Ulrich
 - Margarita Ivanova
