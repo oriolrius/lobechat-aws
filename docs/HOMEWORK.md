@@ -33,6 +33,7 @@ Practice GitHub workflows by contributing to this repository.
 - Johanna Schmucker
 - Juri Weber
 - Kim Schäfer
+- Kim Schäfer
 - Laura Rodriguez O
 - Lorena Pinillos
 - Lucas Escayola Royuela
@@ -58,7 +59,7 @@ Practice GitHub workflows by contributing to this repository.
 - Victor Pérez
 - Yago Granada
 - Alain Castaños
-
+ 
 ## Deliverable
 
 Screenshot showing:
