@@ -30,6 +30,7 @@ Practice GitHub workflows by contributing to this repository.
 - Guennoun Ismail
 - Ignacio Baratech
 - Irene Cavallé
+- Jan Budzisz
 - Johanna Schmucker
 - Juri Weber
 - Kim Schäfer
@@ -59,8 +60,8 @@ Practice GitHub workflows by contributing to this repository.
 - Yago Granada
 - Alain Castaños
 
-## Deliverable
 
+## Deliverable
 Screenshot showing:
 - Your PR with green CI checks
 
