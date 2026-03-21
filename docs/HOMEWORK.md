@@ -22,7 +22,8 @@ Practice GitHub workflows by contributing to this repository.
 - Carolina Kogan
 - Guennoun Ismail
 - Irene Cavallé
-- Johanna Schmucker
+- Johanna Luisa Schmucker
+- Juri Weber
 - Kim Schäfer
 - Noah Cordero Reschka
 - Pablo Muñoz
