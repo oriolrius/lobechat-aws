@@ -72,7 +72,10 @@ services:
         condition: service_healthy
 
   mcphub:
-    image: samanhappy/mcphub:latest
+    build:
+      context: .
+      dockerfile: dockerfiles/mcphub.Dockerfile
+    image: lobechat-aws-mcphub:latest
     container_name: mcphub
     ports:
       - "${MCPHUB_PORT:-47008}:3000"
