@@ -93,6 +93,8 @@ services:
       # AWS region config (credentials read from mounted ~/.aws)
       - AWS_REGION=${AWS_REGION:-eu-west-1}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-eu-west-1}
+      # Notion MCP integration token (Bearer header)
+      - OPENAPI_MCP_HEADERS=${OPENAPI_MCP_HEADERS}
     volumes:
       - ./config/mcp_settings.json:/app/mcp_settings.json
       - ./data/mcphub:/app/data

@@ -13,11 +13,12 @@
         "SSH_PORT": "22",
         "SSH_USERNAME": "oriol",
         "SSH_PRIVATE_KEY_FILE": "/app/ssh/id_rsa",
-        "SSH_ALLOWED_COMMANDS": "ls,cat,head,tail,grep,find,ps,df,du,uptime,whoami,pwd,echo",
+        "SSH_ALLOWED_COMMANDS": "ls,cat,head,tail,grep,find,ps,df,du,uptime,whoami,pwd,echo,curl",
         "SSH_ALLOWED_PATHS": "/home,/tmp,/var/log",
         "SSH_COMMANDS_BLACKLIST": "rm,mv,dd,mkfs,fdisk,format,shutdown,reboot",
         "SSH_ARGUMENTS_BLACKLIST": "-rf,-fr,--force"
-      }
+      },
+      "type": "stdio"
     },
     "notion-mcp": {
       "enabled": true,
@@ -96,6 +97,50 @@
         "MINIO_USE_SSL": "false",
         "MINIO_REGION": "us-east-1"
       }
+    },
+    "d2": {
+      "enabled": true,
+      "owner": "admin",
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "ghcr.io/h0rv/d2-mcp:main",
+        "--image-type", "svg"
+      ],
+      "env": {}
+    },
+    "infrastructure-diagrams": {
+      "enabled": true,
+      "owner": "admin",
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "infrastructure-diagram-mcp-server"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "qdrant-mcp": {
+      "enabled": true,
+      "owner": "admin",
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-qdrant"
+      ],
+      "env": {
+        "QDRANT_URL": "http://qdrant:6333",
+        "COLLECTION_NAME": "rag-demo",
+        "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2"
+      }
+    },
+    "haystack-mcp": {
+      "enabled": true,
+      "owner": "admin",
+      "type": "streamable-http",
+      "url": "http://hayhooks-mcp:1417/mcp"
     },
     "aws-documentation": {
       "enabled": true,
