@@ -202,6 +202,18 @@ services:
       retries: 5
 
 
+  linux-sandbox:
+    build:
+      context: .
+      dockerfile: dockerfiles/sandbox.Dockerfile
+    image: lobechat-aws-linux-sandbox:latest
+    container_name: linux-sandbox
+    volumes:
+      - /home/oriol/.ssh:/home/oriol/.ssh
+    restart: unless-stopped
+    # Idle container; commands are exec'd in via the linux-sandbox MCP server
+    command: ["tail", "-f", "/dev/null"]
+
   postgres:
     image: pgvector/pgvector:pg16
     container_name: shared-postgres

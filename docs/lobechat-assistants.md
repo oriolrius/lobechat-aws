@@ -141,6 +141,7 @@ docker exec shared-postgres psql -U postgres -d lobechat \
 | `agt_DiagMinio01` | Cloud Diagram Assistant 🏗️ | `mcphub-diagrams`, `mcphub-minio`, `mcphub-fs` | [`agent-cloud-diagrams.md`](agent-cloud-diagrams.md) |
 | `agt_RagSage01`   | RAG Sage 📚 | `mcphub-qdrant`, `lobe-artifacts` | [`agent-rag-sage.md`](agent-rag-sage.md) |
 | `agt_R7R98pk05OJq` | Screenshot Service Agent | `mcphub-minio`, `mcphub-fs`, `mcphub-playwright` | (community pattern, see Cloud Diagram doc for the same trick) |
+| `agt_LinuxBox01` | Linux Assistant 🐧 | `mcphub-linux-sandbox` | [`mcp-linux-sandbox.md`](mcp-linux-sandbox.md) |
 
 ## Related docs
 

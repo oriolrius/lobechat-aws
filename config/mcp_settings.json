@@ -142,6 +142,17 @@
       "type": "streamable-http",
       "url": "http://hayhooks-mcp:1417/mcp"
     },
+    "linux-sandbox": {
+      "enabled": true,
+      "owner": "admin",
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "exec", "-i", "-u", "oriol", "-w", "/home/oriol", "linux-sandbox",
+        "npx", "-y", "@wonderwhy-er/desktop-commander@latest"
+      ],
+      "env": {}
+    },
     "aws-documentation": {
       "enabled": true,
       "owner": "admin",

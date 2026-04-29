@@ -96,6 +96,7 @@ Commit format: `type(scope)?: description` where type is feat/fix/docs/style/ref
 - haystack-mcp: streamable-http to `hayhooks-mcp:1417/mcp`
 - infrastructure-diagrams: stdio `uvx infrastructure-diagram-mcp-server` (Python `diagrams` package + Graphviz)
 - d2: stdio `docker run ghcr.io/h0rv/d2-mcp:main` (D2 diagram language)
+- linux-sandbox: stdio `docker exec -i -u oriol -w /home/oriol linux-sandbox npx -y @wonderwhy-er/desktop-commander` — Ubuntu 24.04 sandbox container running as `oriol` (uid 1000, NOPASSWD sudo) with ssh client, AWS CLI v2, kubectl, eksctl; host `~/.ssh` bind-mounted at `/home/oriol/.ssh` (see `docs/mcp-linux-sandbox.md`)
 
 **Data Flow:** LobeChat → Casdoor (auth) → Postgres (data) → MinIO (files) → MCPHub (tools) → {qdrant, hayhooks, vLLM/OpenRouter/Meridian, …}. RAG path: LobeChat → MCPHub → qdrant-mcp → Qdrant `rag-demo` (or → haystack-mcp → Hayhooks → Qdrant for pipeline-driven retrieval).
 
