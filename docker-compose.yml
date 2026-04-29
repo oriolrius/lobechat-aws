@@ -60,6 +60,8 @@ services:
       # Embedding model configuration
       - DEFAULT_FILES_CONFIG=embedding_model=openai/text-embedding-3-small
       - LLM_VISION_IMAGE_USE_BASE64=1
+      # Suppress changelog modal + update-check redirect on every page load
+      - FEATURE_FLAGS=-changelog,-check_updates
     restart: unless-stopped
     depends_on:
       postgres:
