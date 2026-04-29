@@ -111,10 +111,14 @@ services:
     volumes:
       - ./data/huggingface:/root/.cache/huggingface
     command: >
-      --model ${VLLM_MODEL_ID:-oriolrius/myemoji-gemma-3-270m-it}
+      --model ${VLLM_MODEL_ID:-google/gemma-4-E4B-it}
       --trust-remote-code
-      --max-model-len 4096
+      --max-model-len 16384
+      --dtype bfloat16
       --gpu-memory-utilization 0.9
+      --enable-auto-tool-choice
+      --tool-call-parser gemma4
+      --reasoning-parser gemma4
     deploy:
       resources:
         reservations:
@@ -128,7 +132,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 120s
+      start_period: 300s
 
   minio:
     image: minio/minio:latest
