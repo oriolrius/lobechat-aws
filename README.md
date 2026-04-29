@@ -1,6 +1,6 @@
 # LobeChat Local Stack
 
-Self-hosted LobeChat with PostgreSQL, Casdoor authentication, and MinIO storage.
+Self-hosted LobeChat backed by PostgreSQL + Casdoor SSO + MinIO, plus a local RAG stack (**Qdrant** + **Hayhooks**), local LLM inference (**vLLM** running **Gemma 4 E4B** with native function calling), and an **MCPHub** aggregator that exposes ~10 MCP servers (ssh-exec, notion, qdrant, haystack, infrastructure-diagrams, d2, playwright, filesystem, minio, aws-*) to any chat agent.
 
 ## Quick Start
 
@@ -93,21 +93,39 @@ docker compose restart lobe-chat  # Restart service
 
 ```
 .
-├── docker-compose.yml     # Stack definition
-├── .env                   # Environment variables
+├── docker-compose.yml         # Stack definition
+├── .env                       # Environment variables (gitignored)
+├── dockerfiles/
+│   └── mcphub.Dockerfile      # mcphub image extended with graphviz, docker.io, gcc
 ├── config/
-│   ├── casdoor-app.conf   # Casdoor server config
-│   ├── init_data.json     # Casdoor initial data
-│   ├── init-postgres.sql  # Database init script
-│   └── esade.pem          # AWS SSH key (future use)
-├── data/
-│   ├── postgres/          # PostgreSQL data
-│   ├── minio/             # Uploaded files
-│   ├── qdrant/            # Qdrant vector storage
-│   └── huggingface/       # vLLM model cache
+│   ├── casdoor-app.conf       # Casdoor server config
+│   ├── init_data.json         # Casdoor initial data
+│   ├── init-postgres.sql      # Database init script
+│   ├── mcp_settings.json      # MCPHub server registry (source of truth)
+│   ├── mcp_settings.json.bak  # Backup
+│   └── ssh/                   # mcphub SSH key for ssh-exec MCP (gitignored)
+├── db/
+│   ├── migrate                # dbmate wrapper script
+│   ├── migrations/            # Incremental SQL migrations
+│   ├── schema.sql             # Schema snapshot
+│   └── seed.sql               # Seed data
+├── patches/
+│   └── route.js               # LobeChat hotfix for MCP session retry logic
+├── data/                      # gitignored
+│   ├── postgres/              # PostgreSQL data
+│   ├── minio/                 # Uploaded files
+│   ├── qdrant/                # Qdrant vector storage
+│   ├── huggingface/           # vLLM model cache
+│   └── mcphub/                # MCPHub runtime data
 └── docs/
-    ├── architecture.drawio  # Architecture diagram
-    └── rag-demo/            # Haystack + Qdrant RAG use case
+    ├── architecture.drawio    # Architecture diagram
+    ├── rag-demo/              # Haystack + Qdrant RAG use case
+    ├── mcp-onboarding.md      # How to register a new MCP server
+    ├── mcp-d2.md              # Agent guide: d2 MCP
+    ├── mcp-diagrams.md        # Agent guide: infrastructure-diagrams MCP
+    ├── lobechat-assistants.md # How to seed LobeChat agents from outside the UI
+    ├── agent-cloud-diagrams.md# Cloud Diagram Assistant agent
+    └── agent-rag-sage.md      # RAG Sage agent
 ```
 
 ## Adding new MCP servers
@@ -128,7 +146,16 @@ How to create / update / delete LobeChat agents from outside the UI (DB recipe u
 ## Configuration
 
 Edit `.env` for:
-- `AUTH_CASDOOR_*` - SSO settings
-- `S3_*` - MinIO storage
-- `POSTGRES_PASSWORD` - Database password
-- `KEY_VAULTS_SECRET` - API key encryption
+- `KEY_VAULTS_SECRET`, `NEXT_AUTH_SECRET` — LobeChat secrets, min 32 chars (base64 for `KEY_VAULTS_SECRET`)
+- `AUTH_CASDOOR_*` — SSO settings (id + secret match `config/init_data.json`)
+- `POSTGRES_PASSWORD` — shared Postgres password
+- `S3_*`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` — MinIO storage
+- `HF_TOKEN` — Hugging Face token, used by vLLM to fetch gated Gemma 4 weights
+- `OPENROUTER_API_KEY` — external LLM + embedding provider (also used as `OPENAI_API_KEY` for embeddings)
+- `OPENAPI_MCP_HEADERS` — Notion bearer token for `notion-mcp`. Format: `{"Authorization":"Bearer ntn_…","Notion-Version":"2022-06-28"}`
+- `VLLM_MODEL_ID` — defaults to `google/gemma-4-E4B-it`
+- `MCPHUB_ADMIN_USER`, `MCPHUB_ADMIN_PASSWORD` — MCPHub admin login
+- `SSH_HOST`, `SSH_USERNAME`, `SSH_ALLOWED_COMMANDS`, … — `ssh-exec` MCP whitelist
+- AWS credentials are auto-mounted from `~/.aws` into `mcphub` (no `.env` entry needed)
+
+Anthropic models (`claude-sonnet-4-6`, `claude-opus-4-7`, …) are wired via the [Meridian](https://github.com/rynfar/meridian) bridge running outside this compose stack. The provider is registered directly in the `ai_providers` Postgres table (encrypted `key_vaults` blob via `KEY_VAULTS_SECRET`); see `docs/lobechat-assistants.md` for the encryption recipe.
