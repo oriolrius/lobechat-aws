@@ -89,7 +89,14 @@ Commit format: `type(scope)?: description` where type is feat/fix/docs/style/ref
 
 ## Key Configuration Files
 
-- `config/mcp_settings.json`: MCPHub server configuration with security restrictions
+- `config/mcp_settings.json`: MCPHub server configuration with security restrictions. To add a new MCP server (and surface it inside LobeChat), follow `docs/mcp-onboarding.md` — both layers (MCPHub config + LobeChat `user_installed_plugins` row) must be touched.
+- `dockerfiles/mcphub.Dockerfile`: extends `samanhappy/mcphub:latest` with system deps required by stdio MCP servers (graphviz, libgraphviz-dev, gcc — extend here when adding more)
+- `docs/mcp-onboarding.md`: end-to-end MCP registration guide (transport choice, MCPHub entry, LobeChat plugin row, agent wiring, sanity checks, troubleshooting)
+- `docs/mcp-d2.md`: agent guide for `mcphub-d2` (D2 diagram language) — when to use, role prompt, sample prompts
+- `docs/mcp-diagrams.md`: agent guide for `mcphub-diagrams` (Python `diagrams` + Graphviz) — when to use, role prompt, sample prompts
+- `docs/agent-cloud-diagrams.md`: pre-built LobeChat agent (`agt_DiagMinio01` — Cloud Diagram Assistant) that renders diagrams and uploads PNGs to MinIO so the image renders inline in chat. Reuses the screenshot-agent pattern (path-variable trick + public bucket policy).
+- `docs/agent-rag-sage.md`: pre-built LobeChat agent (`agt_RagSage01` — RAG Sage 📚) that grounds answers in the `rag-demo` Qdrant corpus and renders the synthesis as a `lobe-artifacts` markdown artifact. Corpus content is discovered dynamically via `qdrant-find` probes, so adding/removing documents requires no prompt edit.
+- `docs/lobechat-assistants.md`: generic recipe for creating / updating / deleting LobeChat agents from outside the UI by inserting `agents` + `sessions` + `agents_to_sessions` rows into Postgres. `pg_read_file` trick for long system prompts.
 - `config/init_data.json`: Casdoor SSO initial data
 - `config/init-postgres.sql`: Database initialization (creates lobechat, casdoor DBs)
 - `db/migrate`: Database migration wrapper script (uses dbmate)
