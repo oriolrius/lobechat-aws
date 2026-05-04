@@ -6,6 +6,8 @@ contrib/
 
 # Environment files with secrets
 .env
+db/flyway/.env.flyway
+db/flyway/.build/
 
 # Python
 __pycache__/
