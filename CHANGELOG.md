@@ -1,3 +1,20 @@
+## v0.6.0 (2026-05-04)
+
+### Feat
+
+- **db**: flyway versioned migrations with secret-templated baseline
+- **mcp**: add linux-sandbox MCP server with persistent zellij shell
+- **vllm**: bump max-model-len 16384 → 32768
+- **mcp**: register five new MCP servers in MCPHub
+- **stack**: add Qdrant + Hayhooks vector RAG services
+- **vllm**: switch to Gemma 4 E4B-it with native function calling
+- **db**: add dbmate migration system with schema and seed support
+- **lobechat**: use OpenRouter for embeddings
+
+### Fix
+
+- **lobechat**: suppress changelog modal and update-check redirect
+
 ## v0.5.2 (2026-01-27)
 
 ### Fix
